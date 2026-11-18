@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f26b1d">
+  <title>Layton Safety Forms</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-btn back-btn" id="backBtn" type="button" aria-label="Back to forms" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text" id="topTitle">Safety Forms</span>
+    </div>
+    <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu"
+      aria-expanded="false" aria-controls="drawer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <span class="menu-dot" id="menuDot" hidden></span>
+    </button>
+  </header>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <nav class="drawer" id="drawer" aria-label="Main menu" aria-hidden="true" inert>
+    <div class="drawer-head">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Layton Safety</span></div>
+      <button class="icon-btn" id="drawerClose" type="button" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <ul class="drawer-links" id="drawerLinks"></ul>
+    <a class="drawer-crisis" href="tel:988">
+      <strong>Need to talk now?</strong>
+      <span>Call or text 988, free and confidential, 24/7</span>
+    </a>
+  </nav>
+
+  <main id="app" tabindex="-1"></main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="forms.js"></script>
+  <script src="resources.js"></script>
+  <script src="notifications.js"></script>
+  <script src="profile.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
