@@ -1,0 +1,41 @@
+﻿JOB_ID,JOB_NAME,PROJECT_TYPE,CITY,STATE,CONTRACT_SIZE,CONTRACT_SIZE_UNIT,CONTRACT_SIZE_BAND,PROJECT_START_DATE,PLANNED_COMPLETION_DATE,PROJECT_STATUS
+JOB-001,Canyon Commercial Project 01,Commercial,Mesa Vista,UT,155000000,USD,$100M-$249.9M,1/1/2024,9/30/2026,Active
+JOB-002,Canyon Healthcare Project 02,Healthcare,Northfield,CO,123000000,USD,$100M-$249.9M,1/1/2024,9/30/2026,Active
+JOB-003,Canyon Education Project 03,Education,Sunridge,AZ,200000000,USD,$100M-$249.9M,1/1/2024,9/30/2026,Active
+JOB-004,Canyon Residential Project 04,Residential,Oak Crossing,TX,313000000,USD,$250M and above,1/1/2024,11/29/2024,Completed
+JOB-005,Canyon Industrial Project 05,Industrial,Clearwater,TN,31000000,USD,Under $50M,1/1/2024,2/1/2025,Completed
+JOB-006,Canyon Infrastructure Project 06,Infrastructure,Pine Harbor,NC,59000000,USD,$50M-$99.9M,1/1/2024,2/22/2025,Completed
+JOB-007,Canyon Civic Project 07,Civic,Lakepoint,GA,124000000,USD,$100M-$249.9M,1/1/2024,2/18/2025,Completed
+JOB-008,Canyon Commercial Project 08,Commercial,Silver Creek,ID,197000000,USD,$100M-$249.9M,1/1/2024,1/4/2025,Completed
+JOB-009,Summit Healthcare Project 09,Healthcare,Mesa Vista,UT,321000000,USD,$250M and above,1/1/2024,12/27/2024,Completed
+JOB-010,Summit Education Project 10,Education,Northfield,CO,315000000,USD,$250M and above,1/1/2024,12/8/2024,Completed
+JOB-011,Summit Residential Project 11,Residential,Sunridge,AZ,310000000,USD,$250M and above,9/28/2024,11/4/2025,Completed
+JOB-012,Summit Industrial Project 12,Industrial,Oak Crossing,TX,93000000,USD,$50M-$99.9M,10/23/2024,11/17/2025,Completed
+JOB-013,Summit Infrastructure Project 13,Infrastructure,Clearwater,TN,212000000,USD,$100M-$249.9M,11/19/2024,9/30/2026,Active
+JOB-014,Summit Civic Project 14,Civic,Pine Harbor,NC,397000000,USD,$250M and above,6/14/2024,11/25/2025,Completed
+JOB-015,Summit Commercial Project 15,Commercial,Lakepoint,GA,135000000,USD,$100M-$249.9M,4/27/2024,10/4/2025,Completed
+JOB-016,Summit Healthcare Project 16,Healthcare,Silver Creek,ID,418000000,USD,$250M and above,10/25/2024,3/22/2026,Completed
+JOB-017,Copper Education Project 17,Education,Mesa Vista,UT,188000000,USD,$100M-$249.9M,10/8/2024,9/30/2026,Active
+JOB-018,Copper Residential Project 18,Residential,Northfield,CO,35000000,USD,Under $50M,4/20/2024,2/19/2026,Completed
+JOB-019,Copper Industrial Project 19,Industrial,Sunridge,AZ,409000000,USD,$250M and above,8/17/2024,1/7/2026,Completed
+JOB-020,Copper Infrastructure Project 20,Infrastructure,Oak Crossing,TX,285000000,USD,$250M and above,6/17/2024,7/6/2026,Completed
+JOB-021,Copper Civic Project 21,Civic,Clearwater,TN,331000000,USD,$250M and above,6/4/2025,9/30/2026,Active
+JOB-022,Copper Commercial Project 22,Commercial,Pine Harbor,NC,363000000,USD,$250M and above,6/27/2025,9/30/2026,Active
+JOB-023,Copper Healthcare Project 23,Healthcare,Lakepoint,GA,291000000,USD,$250M and above,2/25/2025,9/2/2026,Completed
+JOB-024,Copper Education Project 24,Education,Silver Creek,ID,174000000,USD,$100M-$249.9M,7/4/2025,9/30/2026,Active
+JOB-025,Riverview Residential Project 25,Residential,Mesa Vista,UT,30000000,USD,Under $50M,7/9/2025,9/30/2026,Active
+JOB-026,Riverview Industrial Project 26,Industrial,Northfield,CO,158000000,USD,$100M-$249.9M,3/7/2025,6/16/2026,Completed
+JOB-027,Riverview Infrastructure Project 27,Infrastructure,Sunridge,AZ,119000000,USD,$100M-$249.9M,8/23/2025,9/30/2026,Active
+JOB-028,Riverview Civic Project 28,Civic,Oak Crossing,TX,181000000,USD,$100M-$249.9M,1/19/2025,3/3/2026,Completed
+JOB-029,Riverview Commercial Project 29,Commercial,Clearwater,TN,329000000,USD,$250M and above,7/21/2025,9/30/2026,Active
+JOB-030,Riverview Healthcare Project 30,Healthcare,Pine Harbor,NC,351000000,USD,$250M and above,6/26/2025,9/30/2026,Active
+JOB-031,Riverview Education Project 31,Education,Lakepoint,GA,40000000,USD,Under $50M,1/23/2026,9/30/2026,Active
+JOB-032,Riverview Residential Project 32,Residential,Silver Creek,ID,113000000,USD,$100M-$249.9M,1/10/2026,9/30/2026,Active
+JOB-033,Juniper Industrial Project 33,Industrial,Mesa Vista,UT,140000000,USD,$100M-$249.9M,8/25/2025,9/30/2026,Active
+JOB-034,Juniper Infrastructure Project 34,Infrastructure,Northfield,CO,366000000,USD,$250M and above,2/4/2026,9/30/2026,Active
+JOB-035,Juniper Civic Project 35,Civic,Sunridge,AZ,355000000,USD,$250M and above,9/13/2025,9/30/2026,Active
+JOB-036,Juniper Commercial Project 36,Commercial,Oak Crossing,TX,187000000,USD,$100M-$249.9M,9/26/2025,9/30/2026,Active
+JOB-037,Juniper Healthcare Project 37,Healthcare,Clearwater,TN,420000000,USD,$250M and above,11/1/2025,9/30/2026,Active
+JOB-038,Juniper Education Project 38,Education,Pine Harbor,NC,41000000,USD,Under $50M,11/2/2025,9/30/2026,Active
+JOB-039,Juniper Residential Project 39,Residential,Lakepoint,GA,227000000,USD,$100M-$249.9M,12/15/2025,9/30/2026,Active
+JOB-040,Juniper Industrial Project 40,Industrial,Silver Creek,ID,221000000,USD,$100M-$249.9M,12/28/2025,9/30/2026,Active
