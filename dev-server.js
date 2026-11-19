@@ -5,8 +5,9 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import extract from "./api/extract.js";
 import transcribe from "./api/transcribe.js";
+import submitReport from "./api/submit.js";
 
-const API = { "/api/extract": extract, "/api/transcribe": transcribe };
+const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 

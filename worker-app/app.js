@@ -274,8 +274,10 @@
   /** Local + sample reports in one shape, newest first. */
   function allReports() {
     const local = loadLocalReports().map((r) => ({
-      key: r.localId, localId: r.localId, recordId: t("Not sent"), formId: r.formId, at: new Date(r.at),
-      status: "Saved on device", kind: "local", fields: r.fields, attachments: r.attachments,
+      key: r.localId, localId: r.localId, formId: r.formId, at: new Date(r.at), fields: r.fields, attachments: r.attachments,
+      ...(r.recordId
+        ? { recordId: `#${r.recordId}`, status: r.status || "Submitted", kind: "filed" }
+        : { recordId: t("Not sent"), status: "Saved on device", kind: "local" }),
     }));
     const sample = SAMPLE_REPORTS.map((r) => {
       const form = FORMS.find((f) => f.id === r.formId);
@@ -346,7 +348,7 @@
             </tbody></table>
             ${r.kind === "local" ? `
               <div class="report-actions">
-                <p class="muted">${esc(t("Saved on this device only. It will be sent once submission is connected."))}</p>
+                <p class="muted">${esc(t("Saved on this device only. It couldn't be sent."))}</p>
                 <button type="button" class="btn btn-sm" data-remove-report="${esc(r.localId)}">${icon("trash")} ${esc(t("Remove"))}</button>
               </div>` : ""}
           </div>
@@ -705,9 +707,10 @@
       <section class="panel" aria-labelledby="photoTitle">
         <div class="panel-head">
           <h2 id="photoTitle">${icon("camera")} ${esc(t("Photo"))}</h2>
-          <span class="badge">${esc(t("Preview: not connected"))}</span>
+          <span class="badge">${esc(t("Demo"))}</span>
         </div>
         <p class="prompt">${esc(t(session.form.photoPrompt))}</p>
+        <p class="muted demo-note">${esc(t("Demo: photo analysis isn't connected yet, so it fills in sample values."))}</p>
         <div class="photo-actions">
           <label class="btn">${icon("camera")} ${esc(t("Take photo"))}
             <input type="file" accept="image/*" capture="environment" class="visually-hidden" data-photo-input>
@@ -735,9 +738,19 @@
       dz.classList.remove("drag");
       addPhotos(e.dataTransfer.files);
     });
-    el.querySelector("#photoFillBtn").addEventListener("click", () => {
-      // INTEGRATION POINT: send session.photos[].file to image extraction, then applyExtracted(result).
-      toast(t("Photo processing isn't connected yet."));
+    el.querySelector("#photoFillBtn").addEventListener("click", async (e) => {
+      // DEMO: no real image analysis. Waits a moment, then fills the form's sample values.
+      // INTEGRATION POINT: send session.photos[].file to a vision model instead.
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      toast(t("Analyzing photos…"));
+      await new Promise((r) => setTimeout(r, 1500));
+      // Only fill empty fields, so the demo never overwrites what the worker said or typed.
+      const demo = Object.fromEntries(Object.entries(session.form.photoDemo || {})
+        .filter(([name]) => !String(session.values[name] ?? "").trim()));
+      applyExtracted(demo);
+      toast(t("Demo: sample values filled in. Check them before you submit."));
+      btn.disabled = !session.photos.length;
     });
     renderThumbs();
   }
@@ -807,7 +820,7 @@
     const v = session.values[f.name] ?? "";
     const id = `f-${f.name}`;
     const err = session.errors[f.name] ? errorText(session.errors[f.name]) : "";
-    const wide = f.type === "textarea" || f.type === "job";
+    const wide = f.wide || f.type === "textarea" || f.type === "job";
     const req = f.required ? '<span class="req" aria-hidden="true">*</span>' : "";
     const describedBy = [f.hint && `${id}-hint`, `${id}-err`].filter(Boolean).join(" ");
     const common = `id="${id}" name="${f.name}" class="input" aria-describedby="${describedBy}" ${f.required ? 'aria-required="true"' : ""} ${err ? 'aria-invalid="true"' : ""}`;
@@ -959,7 +972,8 @@
     el.textContent = t("Required: {done} of {total}", { done, total: req.length });
   }
 
-  function submit() {
+  async function submit() {
+    if (session.sending) return;
     if (session.voice.recording) stopRecording();
     session.errors = validate();
     const bad = Object.keys(session.errors);
@@ -979,21 +993,38 @@
       record[f.name] = f.type === "computed" ? f.compute(session.values) : String(session.values[f.name] ?? "").trim();
     }
     if (form.finalize) record = form.finalize(record);
-    // INTEGRATION POINT: POST `record` plus attachments to the backend here.
+    const attachments = { photos: session.photos.length, voiceClips: session.voice.clips.length, description: !!session.voice.transcript.trim() };
+
+    // Send to the database (api/submit.js → Supabase). If that fails, keep it on this device.
+    const btn = app.querySelector("#submitBtn");
+    session.sending = true;
+    btn.disabled = true;
+    btn.textContent = t("Sending…");
+    let saved = null;
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formId: form.id, fields: record, attachments, transcript: session.voice.transcript.trim(), reporter: SAMPLE_PROFILE.name }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      saved = await res.json();
+    } catch (e) {
+      console.error("[form-filler] submit failed", e);
+    }
+    session.sending = false;
+
     saveLocalReport({
       localId: `local-${Date.now()}`,
       formId: form.id,
-      at: new Date().toISOString(),
+      at: saved?.createdAt || new Date().toISOString(),
       fields: record,
-      attachments: { photos: session.photos.length, voiceClips: session.voice.clips.length, description: !!session.voice.transcript.trim() },
-    });
-    console.info("[form-filler] record ready to submit", form.id, record, {
-      photos: session.photos.map((p) => p.file.name),
-      voiceClips: session.voice.clips.length,
+      attachments,
+      ...(saved && { recordId: String(saved.id), status: saved.status }),
     });
     session.submitted = true;
     session.record = record;
-    renderDone(record);
+    renderDone(record, !!saved);
   }
 
   function displayValue(f, val) {
@@ -1014,7 +1045,7 @@
     ].filter(Boolean).join(", ");
   }
 
-  function renderDone(record) {
+  function renderDone(record, sent) {
     const { form } = session;
     toastEl.classList.remove("show");
     const rows = form.fields
@@ -1025,8 +1056,9 @@
     app.innerHTML = `
       <section class="done">
         <div class="tick">${icon("check")}</div>
-        <h1>${esc(t("{form} ready", { form: t(form.title) }))}</h1>
-        <p>${esc(t("Sending isn't connected yet, so it's only saved on this device. This is the record that would be submitted."))}</p>
+        <h1>${esc(t(sent ? "{form} sent" : "{form} saved", { form: t(form.title) }))}</h1>
+        <p>${esc(t(sent ? "The safety team can see it now. You can follow its status in My reports."
+          : "Couldn't reach the server, so it's saved on this device only. Try again when you're back online."))}</p>
         <p><a href="#/profile">${esc(t("View in My reports"))}</a></p>
       </section>
       <section class="panel">

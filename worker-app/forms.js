@@ -16,6 +16,7 @@
  *   hint        helper text under the label
  *   compute     for computed: (values) => string
  *   noFuture    date may not be after today
+ *   wide        take the full row (long options)
  *   notBefore   date may not be before the named date field
  */
 
@@ -69,6 +70,21 @@ const HAZARD_CATEGORIES_ISSUES = [
   "Fire Prevention", "Housekeeping", "Ladders", "Scaffolding", "Struck-By",
 ];
 
+// The 10 unsafe conditions that recur in issues.csv (one per hazard category).
+// Picking one lets a new report be matched to past unresolved issues.
+const RECURRING_CONDITIONS = [
+  "The permit board lacked an updated atmospheric test.",
+  "A temporary power cord had damaged insulation near the connector.",
+  "A crew manually lifted heavy fixtures without an available lifting aid.",
+  "Excavated material was stored too close to the trench edge.",
+  "An unprotected floor opening was observed without a secured cover or guardrail.",
+  "Hot work began without a documented permit or nearby extinguisher.",
+  "Scrap material narrowed the designated access route and created a trip hazard.",
+  "An extension ladder was set at an unsafe angle and was not secured.",
+  "A scaffold platform had an open gap and lacked a current inspection tag.",
+  "Pedestrian travel crossed an equipment route without a spotter.",
+];
+
 const FORMS = [
   {
     id: "good-catch",
@@ -79,6 +95,12 @@ const FORMS = [
     voicePrompt:
       "Describe what you saw, where it was, and what you did about it right away.",
     photoPrompt: "Photograph the hazard and, if you can, the fix in place.",
+    // DEMO: sample values the photo mockup fills in (no real image analysis yet).
+    photoDemo: {
+      HAZARD_CATEGORY: "Electrical",
+      GOOD_CATCH_DESCRIPTION: "Photo shows a damaged extension cord with exposed wires lying on the floor.",
+      POTENTIAL_SEVERITY: "Medium",
+    },
     describeExample:
       "e.g. On level 3 by the east stair I found a frayed extension cord before anyone plugged in. Pulled it from service and told the foreman. No follow-up needed.",
     fields: [
@@ -121,11 +143,27 @@ const FORMS = [
     voicePrompt:
       "Describe the unsafe condition, how serious it is, and who or what caused it.",
     photoPrompt: "Photograph the condition so the responsible crew can find it.",
+    photoDemo: {
+      ISSUE_DESCRIPTION: "Photo shows a floor opening with no cover or guardrail.",
+      HAZARD_CATEGORY: "Fall Protection",
+      SEVERITY: "High",
+    },
     describeExample:
       "e.g. Floor opening on level 2 near the elevator core has no cover or guardrail. High severity, the framing crew needs to guard it by Friday.",
     fields: [
       { name: "JOB_ID", label: "Job", type: "job", required: true },
       { name: "OPEN_DATE", label: "Date observed", type: "date", required: true, defaultToday: true, noFuture: true },
+      {
+        name: "OBSERVED_CONDITION", label: "Observed unsafe condition", type: "select", required: true, wide: true,
+        options: [...RECURRING_CONDITIONS, { value: "Other", label: "Other (a new condition)" }],
+        hint: "Pick the closest match so it can be linked to past unresolved issues. Choose Other if it's new.",
+      },
+      {
+        name: "NEW_CONDITION", label: "Describe the new condition", type: "text", required: true, wide: true,
+        placeholder: "e.g. Rebar caps missing on vertical bars near the east wall.",
+        hint: "One short sentence. Similar new reports can be grouped later.",
+        showIf: (v) => v.OBSERVED_CONDITION === "Other",
+      },
       {
         name: "ISSUE_DESCRIPTION", label: "Describe the issue", type: "textarea", required: true,
         placeholder: "e.g. Unprotected floor opening without a secured cover or guardrail.",
@@ -151,6 +189,11 @@ const FORMS = [
     voicePrompt:
       "Say what the worker was doing, what happened, which body part was hurt, and what treatment was given.",
     photoPrompt: "Photograph the area and equipment involved. Don't photograph the injury itself.",
+    photoDemo: {
+      OSHA_HAZARD_CATEGORY: "Falls",
+      HAZARD_SUBCATEGORY: "Walking Surface / Debris",
+      INCIDENT_DESCRIPTION: "Photo shows loose debris on a stairwell landing.",
+    },
     describeExample:
       "e.g. This morning a laborer carrying block slipped on debris in the stairwell and twisted their ankle. Ice and first aid on site, back to work the same day.",
     fields: [
@@ -203,6 +246,7 @@ const FORMS = [
     accent: "blue",
     voicePrompt: "Say how many people were on site, the hours worked, the main activity, and the weather.",
     photoPrompt: "Photograph the sign-in sheet or timecards.",
+    photoDemo: { HEADCOUNT: "38", REGULAR_HOURS: "304" },
     // One-line summary for lists (other forms use their description field).
     summarize: (v) => [v.HEADCOUNT && `${v.HEADCOUNT} ${t("on site")}`, v.TOTAL_HOURS && `${v.TOTAL_HOURS} ${t("hrs")}`, v.WORK_ACTIVITY && t(v.WORK_ACTIVITY), v.WEATHER && t(v.WEATHER)].filter(Boolean).join(" · "),
     describeExample:

@@ -455,3 +455,5 @@ select.input { appearance: none; padding-right: 36px;
 
 .transcript-label { display: flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 8px; font-size: .9rem; font-weight: 600; color: var(--text-muted); }
 .transcript-label svg { width: 16px; height: 16px; }
+
+.demo-note { margin: -4px 0 12px; font-size: .85rem; }
