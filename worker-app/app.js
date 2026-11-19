@@ -17,9 +17,8 @@
   const toastEl = document.getElementById("toast");
 
   const MODES = [
-    { id: "voice", label: "Voice", icon: "mic" },
+    { id: "voice", label: "Talk or type", icon: "mic" },
     { id: "photo", label: "Photo", icon: "camera" },
-    { id: "describe", label: "Describe", icon: "chat" },
     { id: "manual", label: "Manual", icon: "pencil" },
   ];
 
@@ -92,9 +91,8 @@
       fieldsExpanded: true,
       dirty: false,
       submitted: false,
-      voice: { recording: false, startedAt: 0, timer: null, clips: [] },
+      voice: { recording: false, startedAt: 0, timer: null, clips: [], transcript: "" },
       photos: [],
-      describe: "",
       record: null,
     };
   }
@@ -102,6 +100,7 @@
   function endSession() {
     if (!session) return;
     clearInterval(session.voice.timer);
+    session.voice.stream?.getTracks().forEach((tr) => tr.stop());
     session.photos.forEach((p) => URL.revokeObjectURL(p.url));
     session = null;
   }
@@ -513,7 +512,6 @@
 
       <div id="voicePanel"></div>
       <div id="photoPanel"></div>
-      <div id="describePanel"></div>
       <div id="fieldsPanel"></div>
 
       <div class="submit-bar">
@@ -528,7 +526,6 @@
 
     renderVoicePanel();
     renderPhotoPanel();
-    renderDescribePanel();
     renderFieldsPanel();
     updateStatus();
   }
@@ -547,69 +544,32 @@
     app.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", modes.has(b.dataset.mode)));
     renderVoicePanel();
     renderPhotoPanel();
-    renderDescribePanel();
     renderFieldsPanel();
   }
 
-  /* ---------------- Describe panel (natural language, UI only) ---------------- */
-
-  function renderDescribePanel() {
-    const el = app.querySelector("#describePanel");
-    if (!session.modes.has("describe")) { el.innerHTML = ""; return; }
-    el.innerHTML = `
-      <section class="panel" aria-labelledby="describeTitle">
-        <div class="panel-head">
-          <h2 id="describeTitle">${icon("chat")} ${esc(t("Describe"))}</h2>
-        </div>
-        <p class="prompt">${esc(t("Write it the way you'd tell a coworker. The form fields get pulled from what you write."))}</p>
-        <label for="describeText" class="visually-hidden">${esc(t("Describe what happened"))}</label>
-        <textarea id="describeText" class="input describe-input" placeholder="${esc(t(session.form.describeExample || ""))}">${esc(session.describe)}</textarea>
-        <div class="panel-foot">
-          <span class="char-count muted" id="describeCount" aria-live="polite"></span>
-          <button type="button" class="btn btn-sm" id="describeFillBtn">${icon("sparkle")} ${esc(t("Fill form from description"))}</button>
-        </div>
-      </section>`;
-
-    const ta = el.querySelector("#describeText");
-    const btn = el.querySelector("#describeFillBtn");
-    const count = el.querySelector("#describeCount");
-    const sync = () => {
-      const words = session.describe.trim() ? session.describe.trim().split(/\s+/).length : 0;
-      count.textContent = words ? t("Words: {n}", { n: words }) : "";
-      btn.disabled = !words;
-    };
-    ta.addEventListener("input", () => {
-      session.describe = ta.value;
-      session.dirty = true;
-      sync();
-    });
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      toast(t("Filling the form…"));
-      try {
-        const result = await extractFields(session.form, session.describe);
-        // Re-filling: undo earlier AI values the new description no longer supports.
-        for (const name of session.aiFilled || []) {
-          if (name in result) continue;
-          const f = session.form.fields.find((x) => x.name === name);
-          session.values[name] = f.defaultToday ? todayISO() : f.defaultValue ?? "";
-        }
-        session.aiFilled = Object.keys(result);
-        applyExtracted(result);
-        toast(Object.keys(result).length
-          ? t("Check the filled fields before you submit.")
-          : t("Couldn't find details to fill. Fill the form by hand."));
-      } catch (e) {
-        console.error("[form-filler] extraction failed", e);
-        toast(t("Couldn't fill the form. Try again or fill it by hand."));
-      } finally {
-        sync();
+  /** Send text (typed or transcribed) to AI extraction and fill the form for review. */
+  async function fillFromText(text) {
+    toast(t("Filling the form…"));
+    try {
+      const result = await extractFields(session.form, text);
+      // Re-filling: undo earlier AI values the new text no longer supports.
+      for (const name of session.aiFilled || []) {
+        if (name in result) continue;
+        const f = session.form.fields.find((x) => x.name === name);
+        session.values[name] = f.defaultToday ? todayISO() : f.defaultValue ?? "";
       }
-    });
-    sync();
+      session.aiFilled = Object.keys(result);
+      applyExtracted(result);
+      toast(Object.keys(result).length
+        ? t("Check the filled fields before you submit.")
+        : t("Couldn't find details to fill. Fill the form by hand."));
+    } catch (e) {
+      console.error("[form-filler] extraction failed", e);
+      toast(t("Couldn't fill the form. Try again or fill it by hand."));
+    }
   }
 
-  /* ---------------- Voice panel (UI only) ---------------- */
+  /* ---------------- Voice panel ---------------- */
 
   function renderVoicePanel() {
     const el = app.querySelector("#voicePanel");
@@ -618,8 +578,7 @@
     el.innerHTML = `
       <section class="panel ${v.recording ? "recording-on" : ""}" aria-labelledby="voiceTitle">
         <div class="panel-head">
-          <h2 id="voiceTitle">${icon("mic")} ${esc(t("Voice"))}</h2>
-          <span class="badge">${esc(t("Preview: not connected"))}</span>
+          <h2 id="voiceTitle">${icon("mic")} ${esc(t("Talk or type"))}</h2>
         </div>
         <p class="prompt">${esc(t(session.form.voicePrompt))}</p>
         <div class="voice-stage">
@@ -629,7 +588,7 @@
           </button>
           <div class="wave" aria-hidden="true">${"<span></span>".repeat(14)}</div>
           <div class="voice-status" id="voiceStatus" aria-live="polite">
-            ${esc(v.recording ? t("Recording… {time}", { time: fmtDuration(Date.now() - v.startedAt) }) : t(v.clips.length ? "Tap to add another clip" : "Tap to start talking"))}
+            ${esc(v.recording ? t("Recording… {time}", { time: fmtDuration(Date.now() - v.startedAt) }) : t(v.clips.length ? "Tap to add another clip" : "Tap the mic to talk, or type below"))}
           </div>
           ${v.clips.length ? `
             <ul class="clip-list">
@@ -640,31 +599,58 @@
                   <button type="button" class="icon-btn" data-remove-clip="${i}" aria-label="${esc(t("Remove clip {n}", { n: i + 1 }))}">${icon("trash")}</button>
                 </li>`).join("")}
             </ul>` : ""}
-          <div class="transcript" aria-label="${esc(t("Transcript"))}">
-            ${esc(t("The transcript will appear here once voice capture is connected."))}
-          </div>
+          ${v.clips.some((c) => c.pending) ? `<div class="transcript" aria-live="polite">${esc(t("Turning your voice into text…"))}</div>` : ""}
+          <label for="voiceText" class="transcript-label">${icon("pencil")} ${esc(t("What happened (you can edit this)"))}</label>
+          <textarea id="voiceText" class="input voice-text" placeholder="${esc(t(session.form.describeExample || ""))}">${esc(v.transcript)}</textarea>
         </div>
         <div class="panel-foot">
-          <button type="button" class="btn btn-sm" id="voiceFillBtn" ${v.clips.length ? "" : "disabled"}>
-            ${icon("sparkle")} ${esc(t("Fill form from voice"))}
+          <button type="button" class="btn btn-sm" id="voiceFillBtn">
+            ${icon("sparkle")} ${esc(t("Fill the form with AI"))}
           </button>
         </div>
       </section>`;
 
+    const fillBtn = el.querySelector("#voiceFillBtn");
+    const syncFill = () => { fillBtn.disabled = !v.transcript.trim() || v.clips.some((c) => c.pending); };
+    syncFill();
+
     el.querySelector("#micBtn").addEventListener("click", () => (v.recording ? stopRecording() : startRecording()));
     el.querySelectorAll("[data-remove-clip]").forEach((b) => b.addEventListener("click", () => {
-      v.clips.splice(Number(b.dataset.removeClip), 1);
+      const [clip] = v.clips.splice(Number(b.dataset.removeClip), 1);
+      // Take that clip's words out of the transcript too (if the worker hasn't edited them).
+      if (clip.text) v.transcript = v.transcript.replace(clip.text, "").replace(/\s+/g, " ").trim();
       renderVoicePanel();
     }));
-    el.querySelector("#voiceFillBtn").addEventListener("click", () => {
-      // INTEGRATION POINT: send v.clips to speech-to-text + field extraction, then applyExtracted(result).
-      toast(t("Voice processing isn't connected yet."));
+    // The worker can fix misheard words before filling the form.
+    el.querySelector("#voiceText").addEventListener("input", (e) => {
+      v.transcript = e.target.value;
+      session.dirty = true;
+      syncFill();
+    });
+    fillBtn.addEventListener("click", async () => {
+      fillBtn.disabled = true;
+      await fillFromText(v.transcript);
+      syncFill();
     });
   }
 
-  function startRecording() {
-    // INTEGRATION POINT: request the microphone (getUserMedia) and start a MediaRecorder here.
+  async function startRecording() {
     const v = session.voice;
+    try {
+      v.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      console.error("[form-filler] microphone", e);
+      toast(t("Couldn't use the microphone. Allow it in your browser settings."));
+      return;
+    }
+    const chunks = [];
+    v.recorder = new MediaRecorder(v.stream);
+    v.recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    v.recorder.onstop = () => {
+      v.stream.getTracks().forEach((tr) => tr.stop());
+      transcribeClip(v.clips[v.clips.length - 1], new Blob(chunks, { type: v.recorder.mimeType }));
+    };
+    v.recorder.start();
     v.recording = true;
     v.startedAt = Date.now();
     session.dirty = true;
@@ -679,8 +665,35 @@
     const v = session.voice;
     clearInterval(v.timer);
     v.recording = false;
-    v.clips.push({ duration: Date.now() - v.startedAt });
+    v.clips.push({ duration: Date.now() - v.startedAt, pending: true, text: "" });
+    v.recorder?.stop();
     renderVoicePanel();
+  }
+
+  async function transcribeClip(clip, blob) {
+    const s = session;
+    try {
+      const audio = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(",")[1]);
+        r.onerror = reject;
+        r.readAsDataURL(blob);
+      });
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audio, mimeType: blob.type }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      clip.text = (await res.json()).text.trim();
+      s.voice.transcript = [s.voice.transcript.trim(), clip.text].filter(Boolean).join(" ");
+      if (!clip.text) toast(t("Didn't catch any words. Check your microphone and try again."));
+    } catch (e) {
+      console.error("[form-filler] transcription failed", e);
+      toast(t("Couldn't turn the recording into text. Try again."));
+    }
+    clip.pending = false;
+    if (session === s) renderVoicePanel();
   }
 
   /* ---------------- Photo panel (UI only) ---------------- */
@@ -771,7 +784,7 @@
           </button>
         </div>
         ${manual ? "" : `<p class="prompt">${esc(t("These get filled in from your {sources}. Open them to check or correct anything.", {
-          sources: new Intl.ListFormat(langTag(), { type: "conjunction" }).format([...session.modes].map((m) => t({ voice: "voice", photo: "photos", describe: "description" }[m]))),
+          sources: new Intl.ListFormat(langTag(), { type: "conjunction" }).format([...session.modes].map((m) => t({ voice: "voice", photo: "photos" }[m]))),
         }))}</p>`}
         <div class="fields" id="fieldsBody">
           ${session.form.fields.map(renderField).join("")}
@@ -972,7 +985,7 @@
       formId: form.id,
       at: new Date().toISOString(),
       fields: record,
-      attachments: { photos: session.photos.length, voiceClips: session.voice.clips.length, description: !!session.describe.trim() },
+      attachments: { photos: session.photos.length, voiceClips: session.voice.clips.length, description: !!session.voice.transcript.trim() },
     });
     console.info("[form-filler] record ready to submit", form.id, record, {
       photos: session.photos.map((p) => p.file.name),
@@ -1007,7 +1020,7 @@
     const rows = form.fields
       .filter((f) => f.name in record && record[f.name] !== "")
       .map((f) => `<tr><th scope="row">${esc(t(f.label))}</th><td>${esc(displayValue(f, record[f.name]))}</td></tr>`).join("");
-    const attach = attachmentList(session.photos.length, session.voice.clips.length, !!session.describe.trim());
+    const attach = attachmentList(session.photos.length, session.voice.clips.length, !!session.voice.transcript.trim());
 
     app.innerHTML = `
       <section class="done">
