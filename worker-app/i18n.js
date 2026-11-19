@@ -360,6 +360,32 @@ const I18N = {
     "Zostaw przynajmniej jeden sposób wypełniania.",
   ],
   "Filling the form…": ["Llenando el formulario…", "Preenchendo o formulário…", "Wypełnianie formularza…"],
+  "AI · check": ["IA · revisar", "IA · conferir", "AI · sprawdź"],
+  "I checked the {n} AI-filled fields": [
+    "Revisé los {n} campos que llenó la IA",
+    "Conferi os {n} campos preenchidos pela IA",
+    "Sprawdziłem {n} pól wypełnionych przez AI",
+  ],
+  "AI can make mistakes. Check the results.": [
+    "La IA puede equivocarse. Revisa los resultados.",
+    "A IA pode errar. Confira os resultados.",
+    "AI może się mylić. Sprawdź wyniki.",
+  ],
+  "AI looks at the photos and suggests values for empty fields.": [
+    "La IA mira las fotos y sugiere valores para los campos vacíos.",
+    "A IA analisa as fotos e sugere valores para os campos vazios.",
+    "AI ogląda zdjęcia i proponuje wartości dla pustych pól.",
+  ],
+  "Check the AI-filled fields and tick the box before you submit.": [
+    "Revisa los campos que llenó la IA y marca la casilla antes de enviar.",
+    "Confira os campos preenchidos pela IA e marque a caixa antes de enviar.",
+    "Sprawdź pola wypełnione przez AI i zaznacz pole wyboru przed wysłaniem.",
+  ],
+  "Everything the AI found is already filled in.": [
+    "Todo lo que encontró la IA ya está lleno.",
+    "Tudo o que a IA encontrou já está preenchido.",
+    "Wszystko, co znalazła AI, jest już wypełnione.",
+  ],
   "Check the filled fields before you submit.": [
     "Revisa los campos llenados antes de enviar.",
     "Confira os campos preenchidos antes de enviar.",
@@ -405,17 +431,22 @@ const I18N = {
   "Upload": ["Subir", "Enviar arquivo", "Prześlij"],
   "or drag images here": ["o arrastra imágenes aquí", "ou arraste imagens aqui", "lub przeciągnij zdjęcia tutaj"],
   "Fill form from photos": ["Llenar con las fotos", "Preencher com as fotos", "Wypełnij ze zdjęć"],
-  "Demo": ["Demostración", "Demonstração", "Demo"],
-  "Demo: photo analysis isn't connected yet, so it fills in sample values.": [
-    "Demostración: el análisis de fotos aún no está conectado, así que se llenan valores de ejemplo.",
-    "Demonstração: a análise de fotos ainda não está conectada, então são preenchidos valores de exemplo.",
-    "Demo: analiza zdjęć nie jest jeszcze podłączona, więc wpisywane są przykładowe wartości.",
-  ],
+  "AI suggestion": ["Sugerencia de IA", "Sugestão da IA", "Sugestia AI"],
   "Analyzing photos…": ["Analizando fotos…", "Analisando fotos…", "Analiza zdjęć…"],
-  "Demo: sample values filled in. Check them before you submit.": [
-    "Demostración: se llenaron valores de ejemplo. Revísalos antes de enviar.",
-    "Demonstração: valores de exemplo preenchidos. Confira antes de enviar.",
-    "Demo: wpisano przykładowe wartości. Sprawdź je przed wysłaniem.",
+  "AI suggestion filled in from the photos. Check it before you submit.": [
+    "Se llenó una sugerencia de IA a partir de las fotos. Revísala antes de enviar.",
+    "Sugestão da IA preenchida a partir das fotos. Confira antes de enviar.",
+    "Wpisano sugestię AI na podstawie zdjęć. Sprawdź ją przed wysłaniem.",
+  ],
+  "Couldn't find anything new to fill from the photos.": [
+    "No se encontró nada nuevo para llenar con las fotos.",
+    "Não foi encontrado nada novo para preencher com as fotos.",
+    "Na zdjęciach nie znaleziono nic nowego do wpisania.",
+  ],
+  "Couldn't read the photos. Try again or fill it by hand.": [
+    "No se pudieron leer las fotos. Inténtalo de nuevo o llénalo a mano.",
+    "Não foi possível ler as fotos. Tente de novo ou preencha à mão.",
+    "Nie udało się odczytać zdjęć. Spróbuj ponownie lub wypełnij ręcznie.",
   ],
   "Photo {n}": ["Foto {n}", "Foto {n}", "Zdjęcie {n}"],
   "Only the first 5 photos are saved with the report.": [

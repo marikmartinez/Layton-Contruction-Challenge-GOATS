@@ -574,12 +574,20 @@
       <div class="submit-bar">
         <div class="inner">
           <span class="status" id="submitStatus"></span>
+          <label class="ai-confirm" id="aiCheck" hidden>
+            <input type="checkbox" id="aiConfirm">
+            <span id="aiCount"></span>
+          </label>
           <button type="button" class="btn btn-primary" id="submitBtn">${esc(t(session.editId ? "Save changes" : "Review & submit"))}</button>
         </div>
       </div>`;
 
     app.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => toggleMode(b.dataset.mode)));
     app.querySelector("#submitBtn").addEventListener("click", submit);
+    app.querySelector("#aiConfirm").addEventListener("change", (e) => {
+      session.aiConfirmed = e.target.checked;
+      updateAiCheck();
+    });
 
     renderVoicePanel();
     renderPhotoPanel();
@@ -604,26 +612,49 @@
     renderFieldsPanel();
   }
 
-  /** Send text (typed or transcribed) to AI extraction and fill the form for review. */
+  /**
+   * Send text (typed or transcribed) to AI extraction and fill the form for review.
+   * If photos are added, they go along too: the AI reads the hazard from both,
+   * but takes the job, dates and what was done only from the worker's words.
+   */
   async function fillFromText(text) {
     toast(t("Filling the form…"));
     try {
-      const result = await extractFields(session.form, text);
+      const images = session.modes.has("photo")
+        ? (await Promise.all(session.photos.slice(0, 3).map((p) => shrinkPhoto(p.file).catch(() => null)))).filter(Boolean)
+        : [];
+      const result = await extractFields(session.form, text, images);
       // Re-filling: undo earlier AI values the new text no longer supports.
       for (const name of session.aiFilled || []) {
         if (name in result) continue;
         const f = session.form.fields.find((x) => x.name === name);
         session.values[name] = f.defaultToday ? todayISO() : f.defaultValue ?? "";
+        session.aiTouched?.delete(name);
       }
-      session.aiFilled = Object.keys(result);
-      applyExtracted(result);
-      toast(Object.keys(result).length
-        ? t("Check the filled fields before you submit.")
+      // Only fill empty fields, defaults, or fields an earlier text fill set.
+      // What the worker picked by hand or the photo AI filled stays as it is.
+      const earlier = new Set(session.aiFilled || []);
+      const usable = Object.fromEntries(Object.entries(result).filter(([name]) => {
+        const val = String(session.values[name] ?? "").trim();
+        return !val || earlier.has(name) || isDefaultValue(name, val);
+      }));
+      session.aiFilled = Object.keys(usable);
+      applyExtracted(usable);
+      toast(Object.keys(usable).length ? t("Check the filled fields before you submit.")
+        : Object.keys(result).length ? t("Everything the AI found is already filled in.")
         : t("Couldn't find details to fill. Fill the form by hand."));
     } catch (e) {
       console.error("[form-filler] extraction failed", e);
       toast(t("Couldn't fill the form. Try again or fill it by hand."));
     }
+  }
+
+  /** True if a field still holds the value a new form starts with (today, last job, ...). */
+  function isDefaultValue(name, val) {
+    const f = session.form.fields.find((x) => x.name === name);
+    if (f.type === "job") return val === store.get("lastJob");
+    if (f.defaultToday) return val === todayISO();
+    return val === (f.defaultValue ?? "");
   }
 
   /* ---------------- Voice panel ---------------- */
@@ -661,6 +692,7 @@
           <textarea id="voiceText" class="input voice-text" placeholder="${esc(t(session.form.describeExample || ""))}">${esc(v.transcript)}</textarea>
         </div>
         <div class="panel-foot">
+          <span class="ai-note">${esc(t("AI can make mistakes. Check the results."))}</span>
           <button type="button" class="btn btn-sm" id="voiceFillBtn">
             ${icon("sparkle")} ${esc(t("Fill the form with AI"))}
           </button>
@@ -762,10 +794,10 @@
       <section class="panel" aria-labelledby="photoTitle">
         <div class="panel-head">
           <h2 id="photoTitle">${icon("camera")} ${esc(t("Photo"))}</h2>
-          <span class="badge">${esc(t("Demo"))}</span>
+          <span class="badge">${esc(t("AI suggestion"))}</span>
         </div>
         <p class="prompt">${esc(t(session.form.photoPrompt))}</p>
-        <p class="muted demo-note">${esc(t("Demo: photo analysis isn't connected yet, so it fills in sample values."))}</p>
+        <p class="muted demo-note">${esc(t("AI looks at the photos and suggests values for empty fields."))}</p>
         <div class="photo-actions">
           <label class="btn">${icon("camera")} ${esc(t("Take photo"))}
             <input type="file" accept="image/*" capture="environment" class="visually-hidden" data-photo-input>
@@ -777,6 +809,7 @@
         <div class="dropzone" id="dropzone">${esc(t("or drag images here"))}</div>
         <div class="thumbs" id="thumbs"></div>
         <div class="panel-foot">
+          <span class="ai-note">${esc(t("AI can make mistakes. Check the results."))}</span>
           <button type="button" class="btn btn-sm" id="photoFillBtn">${icon("sparkle")} ${esc(t("Fill form from photos"))}</button>
         </div>
       </section>`;
@@ -794,17 +827,25 @@
       addPhotos(e.dataTransfer.files);
     });
     el.querySelector("#photoFillBtn").addEventListener("click", async (e) => {
-      // DEMO: no real image analysis. Waits a moment, then fills the form's sample values.
-      // INTEGRATION POINT: send session.photos[].file to a vision model instead.
+      // AI reads the photos (api/extract.js with images) and suggests values.
       const btn = e.currentTarget;
       btn.disabled = true;
       toast(t("Analyzing photos…"));
-      await new Promise((r) => setTimeout(r, 1500));
-      // Only fill empty fields, so the demo never overwrites what the worker said or typed.
-      const demo = Object.fromEntries(Object.entries(session.form.photoDemo || {})
-        .filter(([name]) => !String(session.values[name] ?? "").trim()));
-      applyExtracted(demo);
-      toast(t("Demo: sample values filled in. Check them before you submit."));
+      try {
+        const images = (await Promise.all(session.photos.slice(0, 3).map((p) => shrinkPhoto(p.file).catch(() => null)))).filter(Boolean);
+        const result = await extractFields(session.form, "", images);
+        // extractFields only asks about what a photo can show (see notFromPhoto in forms.js).
+        // Fill empty fields only, so it never overwrites what the worker said, typed or picked.
+        const visible = Object.fromEntries(Object.entries(result)
+          .filter(([name]) => !String(session.values[name] ?? "").trim()));
+        applyExtracted(visible);
+        toast(t(Object.keys(visible).length
+          ? "AI suggestion filled in from the photos. Check it before you submit."
+          : "Couldn't find anything new to fill from the photos."));
+      } catch (err) {
+        console.error("[form-filler] photo extraction failed", err);
+        toast(t("Couldn't read the photos. Try again or fill it by hand."));
+      }
       btn.disabled = !session.photos.length;
     });
     renderThumbs();
@@ -866,6 +907,21 @@
     });
     wireFields(el);
     refreshConditional();
+    updateAiCheck();
+  }
+
+  /** Fields the AI filled that the worker hasn't changed yet (and that are shown). */
+  const aiFields = () => session.form.fields.filter((f) => session.aiTouched?.has(f.name) && isVisible(f, session.values));
+
+  /** While AI-filled fields are left, the worker must tick the box next to Submit to enable it. */
+  function updateAiCheck() {
+    const box = app.querySelector("#aiCheck");
+    if (!box) return;
+    const n = aiFields().length;
+    box.hidden = !n;
+    box.querySelector("#aiCount").textContent = t("I checked the {n} AI-filled fields", { n });
+    box.querySelector("#aiConfirm").checked = !!session.aiConfirmed;
+    if (!session.sending) app.querySelector("#submitBtn").disabled = n > 0 && !session.aiConfirmed;
   }
 
   function optionList(options) {
@@ -877,6 +933,8 @@
     const id = `f-${f.name}`;
     const err = session.errors[f.name] ? errorText(session.errors[f.name]) : "";
     const wide = f.wide || f.type === "textarea" || f.type === "job";
+    const ai = session.aiTouched?.has(f.name);
+    const aiTag = ai ? ` <span class="ai-tag">${esc(t("AI · check"))}</span>` : "";
     const req = f.required ? '<span class="req" aria-hidden="true">*</span>' : "";
     const describedBy = [f.hint && `${id}-hint`, `${id}-err`].filter(Boolean).join(" ");
     const common = `id="${id}" name="${f.name}" class="input" aria-describedby="${describedBy}" ${f.required ? 'aria-required="true"' : ""} ${err ? 'aria-invalid="true"' : ""}`;
@@ -913,8 +971,8 @@
         break;
       case "yesno":
         return `
-          <div class="field ${err ? "invalid" : ""}" data-field="${f.name}">
-            <span class="label" id="${id}-label">${esc(t(f.label))}${req}</span>
+          <div class="field ${err ? "invalid" : ""} ${ai ? "ai-filled" : ""}" data-field="${f.name}">
+            <span class="label" id="${id}-label">${esc(t(f.label))}${req}${aiTag}</span>
             <div class="seg" role="radiogroup" aria-labelledby="${id}-label" aria-describedby="${id}-err">
               ${[["Y", "Yes"], ["N", "No"]].map(([val, lab]) => `
                 <button type="button" role="radio" data-yesno="${f.name}" data-value="${val}" aria-checked="${v === val}">${esc(t(lab))}</button>`).join("")}
@@ -926,8 +984,8 @@
     }
 
     return `
-      <div class="field ${wide ? "wide" : ""} ${err ? "invalid" : ""}" data-field="${f.name}">
-        <label for="${id}">${esc(t(f.label))}${req}</label>
+      <div class="field ${wide ? "wide" : ""} ${err ? "invalid" : ""} ${ai ? "ai-filled" : ""}" data-field="${f.name}">
+        <label for="${id}">${esc(t(f.label))}${req}${aiTag}</label>
         ${f.hint ? `<span class="hint" id="${id}-hint">${esc(t(f.hint))}</span>` : ""}
         ${control}
         <span class="error" id="${id}-err">${esc(err)}</span>
@@ -950,6 +1008,11 @@
     if (session.values[name] === value) return;
     session.values[name] = value;
     session.dirty = true;
+    if (session.aiTouched?.delete(name)) {
+      app.querySelector(`[data-field="${name}"]`)?.classList.remove("ai-filled");
+      app.querySelector(`[data-field="${name}"] .ai-tag`)?.remove();
+      updateAiCheck();
+    }
     if (session.errors[name]) {
       delete session.errors[name];
       const wrap = app.querySelector(`[data-field="${name}"]`);
@@ -978,8 +1041,12 @@
    * extraction. Fills fields and re-renders so the user can review them.
    */
   function applyExtracted(result) {
+    session.aiTouched ||= new Set();
     for (const [k, val] of Object.entries(result || {})) {
-      if (k in session.values) session.values[k] = String(val ?? "");
+      if (!(k in session.values)) continue;
+      session.values[k] = String(val ?? "");
+      session.aiTouched.add(k);
+      session.aiConfirmed = false; // new AI values → check again
     }
     session.dirty = true;
     session.fieldsExpanded = true;
@@ -1026,6 +1093,7 @@
     const req = session.form.fields.filter((f) => f.required && isVisible(f, session.values));
     const done = req.filter((f) => String(session.values[f.name] ?? "").trim()).length;
     el.textContent = t("Required: {done} of {total}", { done, total: req.length });
+    updateAiCheck(); // a shown/hidden field can change how many AI fields are left
   }
 
   async function submit() {
@@ -1040,6 +1108,11 @@
       first?.scrollIntoView({ behavior: "smooth", block: "center" });
       first?.querySelector(".input, [role=radio]")?.focus({ preventScroll: true });
       toast(t("Fields that need attention: {n}", { n: bad.length }));
+      return;
+    }
+    if (aiFields().length && !session.aiConfirmed) { // the button is disabled then; this is a safety net
+      app.querySelector("#aiConfirm").focus();
+      toast(t("Check the AI-filled fields and tick the box before you submit."));
       return;
     }
     const { form } = session;

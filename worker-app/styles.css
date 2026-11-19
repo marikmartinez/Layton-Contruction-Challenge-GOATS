@@ -459,3 +459,14 @@ select.input { appearance: none; padding-right: 36px;
 .demo-note { margin: -4px 0 12px; font-size: .85rem; }
 
 .report-lock { margin: 10px 0 0; font-size: .85rem; }
+
+
+/* AI-filled fields: marked until the worker changes them, and checked off before submitting */
+.field.ai-filled .input, .field.ai-filled .seg { border-color: var(--amber); background: var(--amber-soft); }
+.ai-tag { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.ai-confirm { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--amber); border-radius: var(--radius-sm); background: var(--amber-soft); font-size: .85rem; font-weight: 600; cursor: pointer; }
+.ai-confirm[hidden] { display: none; }
+.ai-confirm input { width: 18px; height: 18px; flex: none; accent-color: var(--brand); }
+.submit-bar .inner { flex-wrap: wrap; }
+.ai-note { margin-right: auto; color: var(--text-muted); font-size: .8rem; }
+@media (max-width: 560px) { .submit-bar .ai-confirm { order: -1; flex: 1 1 100%; } }

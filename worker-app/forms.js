@@ -17,6 +17,8 @@
  *   compute     for computed: (values) => string
  *   noFuture    date may not be after today
  *   wide        take the full row (long options)
+ *   notFromPhoto  a photo can't show this (what someone did, treatment, the injury),
+ *                 so photo-only AI filling never sends or fills it
  *   notBefore   date may not be before the named date field
  */
 
@@ -95,12 +97,6 @@ const FORMS = [
     voicePrompt:
       "Describe what you saw, where it was, and what you did about it right away.",
     photoPrompt: "Photograph the hazard and, if you can, the fix in place.",
-    // DEMO: sample values the photo mockup fills in (no real image analysis yet).
-    photoDemo: {
-      HAZARD_CATEGORY: "Electrical",
-      GOOD_CATCH_DESCRIPTION: "Photo shows a damaged extension cord with exposed wires lying on the floor.",
-      POTENTIAL_SEVERITY: "Medium",
-    },
     describeExample:
       "e.g. On level 3 by the east stair I found a frayed extension cord before anyone plugged in. Pulled it from service and told the foreman. No follow-up needed.",
     fields: [
@@ -120,12 +116,12 @@ const FORMS = [
         hint: "How bad could it have been if nobody caught it?",
       },
       {
-        name: "IMMEDIATE_ACTION_TAKEN", label: "Immediate action taken", type: "textarea", required: true,
+        name: "IMMEDIATE_ACTION_TAKEN", label: "Immediate action taken", type: "textarea", required: true, notFromPhoto: true,
         placeholder: "e.g. Cord removed from service.",
       },
-      { name: "FOLLOW_UP_REQUIRED_FLAG", label: "Follow-up required?", type: "yesno", required: true },
+      { name: "FOLLOW_UP_REQUIRED_FLAG", label: "Follow-up required?", type: "yesno", required: true, notFromPhoto: true },
       {
-        name: "FOLLOW_UP_STATUS", label: "Follow-up status", type: "select", required: true,
+        name: "FOLLOW_UP_STATUS", label: "Follow-up status", type: "select", required: true, notFromPhoto: true,
         options: ["Open", "Completed"],
         showIf: (v) => v.FOLLOW_UP_REQUIRED_FLAG === "Y",
       },
@@ -143,11 +139,6 @@ const FORMS = [
     voicePrompt:
       "Describe the unsafe condition, how serious it is, and who or what caused it.",
     photoPrompt: "Photograph the condition so the responsible crew can find it.",
-    photoDemo: {
-      ISSUE_DESCRIPTION: "Photo shows a floor opening with no cover or guardrail.",
-      HAZARD_CATEGORY: "Fall Protection",
-      SEVERITY: "High",
-    },
     describeExample:
       "e.g. Floor opening on level 2 near the elevator core has no cover or guardrail. High severity, the framing crew needs to guard it by Friday.",
     fields: [
@@ -171,7 +162,7 @@ const FORMS = [
       { name: "HAZARD_CATEGORY", label: "Hazard category", type: "select", required: true, options: HAZARD_CATEGORIES_ISSUES },
       { name: "SEVERITY", label: "Severity", type: "select", required: true, options: ["Low", "Medium", "High", "Critical"] },
       { name: "ROOT_CAUSE", label: "Root cause", type: "select", options: ["Coordination", "Equipment", "Guarding", "Housekeeping", "Inspection", "Planning", "Procedure"] },
-      { name: "STATUS", label: "Status", type: "select", required: true, options: ["Open", "In Progress", "Closed"], defaultValue: "Open" },
+      { name: "STATUS", label: "Status", type: "select", required: true, options: ["Open", "In Progress", "Closed"], defaultValue: "Open", notFromPhoto: true },
       { name: "DUE_DATE", label: "Correct by", type: "date", required: true, notBefore: "OPEN_DATE" },
       {
         name: "CLOSURE_DATE", label: "Closure date", type: "date", required: true, notBefore: "OPEN_DATE", noFuture: true,
@@ -189,18 +180,13 @@ const FORMS = [
     voicePrompt:
       "Say what the worker was doing, what happened, which body part was hurt, and what treatment was given.",
     photoPrompt: "Photograph the area and equipment involved. Don't photograph the injury itself.",
-    photoDemo: {
-      OSHA_HAZARD_CATEGORY: "Falls",
-      HAZARD_SUBCATEGORY: "Walking Surface / Debris",
-      INCIDENT_DESCRIPTION: "Photo shows loose debris on a stairwell landing.",
-    },
     describeExample:
       "e.g. This morning a laborer carrying block slipped on debris in the stairwell and twisted their ankle. Ice and first aid on site, back to work the same day.",
     fields: [
       { name: "JOB_ID", label: "Job", type: "job", required: true },
       { name: "INCIDENT_DATE", label: "Incident date", type: "date", required: true, defaultToday: true, noFuture: true },
       {
-        name: "INCIDENT_CLASSIFICATION", label: "Classification", type: "select", required: true,
+        name: "INCIDENT_CLASSIFICATION", label: "Classification", type: "select", required: true, notFromPhoto: true,
         options: [
           { value: "First Aid", label: "First Aid" },
           { value: "REC", label: "REC (Recordable)" },
@@ -223,11 +209,11 @@ const FORMS = [
         ],
       },
       {
-        name: "BODY_PART_INJURED", label: "Body part injured", type: "select", required: true,
+        name: "BODY_PART_INJURED", label: "Body part injured", type: "select", required: true, notFromPhoto: true,
         options: ["Ankle / Foot", "Eye", "Forearm", "Hand / Finger", "Knee", "Lower Back", "Lower Leg", "Shoulder", "Wrist"],
       },
       {
-        name: "LTA_LESSON_NUMBER", label: "LTA lesson number", type: "text",
+        name: "LTA_LESSON_NUMBER", label: "LTA lesson number", type: "text", notFromPhoto: true,
         placeholder: "e.g. LTA-002",
         showIf: (v) => v.INCIDENT_CLASSIFICATION === "Lost Time Accident",
       },
@@ -246,7 +232,6 @@ const FORMS = [
     accent: "blue",
     voicePrompt: "Say how many people were on site, the hours worked, the main activity, and the weather.",
     photoPrompt: "Photograph the sign-in sheet or timecards.",
-    photoDemo: { HEADCOUNT: "38", REGULAR_HOURS: "304" },
     // One-line summary for lists (other forms use their description field).
     summarize: (v) => [v.HEADCOUNT && `${v.HEADCOUNT} ${t("on site")}`, v.TOTAL_HOURS && `${v.TOTAL_HOURS} ${t("hrs")}`, v.WORK_ACTIVITY && t(v.WORK_ACTIVITY), v.WEATHER && t(v.WEATHER)].filter(Boolean).join(" · "),
     describeExample:
