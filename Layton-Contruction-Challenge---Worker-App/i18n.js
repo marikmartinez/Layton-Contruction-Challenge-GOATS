@@ -38,6 +38,7 @@ const I18N = {
   "Report": ["Reportar", "Relatar", "Zgłoś"],
   "Support": ["Apoyo", "Apoio", "Wsparcie"],
   "Language": ["Idioma", "Idioma", "Język"],
+  "Language set to {lang}.": ["Idioma cambiado a {lang}.", "Idioma alterado para {lang}.", "Zmieniono język na {lang}."],
   "Mental health & substance use": ["Salud mental y uso de sustancias", "Saúde mental e uso de substâncias", "Zdrowie psychiczne i uzależnienia"],
   "Need to talk now?": ["¿Necesitas hablar ahora?", "Precisa conversar agora?", "Potrzebujesz porozmawiać?"],
   "Call or text 988, free and confidential, 24/7": [

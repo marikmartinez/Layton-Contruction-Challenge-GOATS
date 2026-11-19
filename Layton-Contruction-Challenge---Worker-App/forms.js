@@ -8,7 +8,7 @@
  *
  * Field shape:
  *   name        dataset column name
- *   label       shown to the user
+ *   label       shown to the user (English; translated via t() in i18n.js)
  *   type        text | textarea | select | date | number | yesno | job | computed
  *   required    boolean
  *   options     for select: array of strings, or [{ value, label }]
@@ -204,7 +204,7 @@ const FORMS = [
     voicePrompt: "Say how many people were on site, the hours worked, the main activity, and the weather.",
     photoPrompt: "Photograph the sign-in sheet or timecards.",
     // One-line summary for lists (other forms use their description field).
-    summarize: (v) => [v.HEADCOUNT && `${v.HEADCOUNT} on site`, v.TOTAL_HOURS && `${v.TOTAL_HOURS} hrs`, v.WORK_ACTIVITY, v.WEATHER].filter(Boolean).join(" · "),
+    summarize: (v) => [v.HEADCOUNT && `${v.HEADCOUNT} ${t("on site")}`, v.TOTAL_HOURS && `${v.TOTAL_HOURS} ${t("hrs")}`, v.WORK_ACTIVITY && t(v.WORK_ACTIVITY), v.WEATHER && t(v.WEATHER)].filter(Boolean).join(" · "),
     describeExample:
       "e.g. 42 on site today, 336 regular hours and about 34 overtime. Mostly structural framing. Snowed all morning.",
     fields: [

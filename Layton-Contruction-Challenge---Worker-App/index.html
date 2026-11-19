@@ -16,6 +16,11 @@
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-text" id="topTitle">Safety Forms</span>
     </div>
+    <label class="lang-switch">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+      <span class="lang-code" id="topLangCode" aria-hidden="true">EN</span>
+      <select id="topLangSelect" aria-label="Language"></select>
+    </label>
     <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu"
       aria-expanded="false" aria-controls="drawer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -25,15 +30,22 @@
   <div class="scrim" id="scrim" hidden></div>
   <nav class="drawer" id="drawer" aria-label="Main menu" aria-hidden="true" inert>
     <div class="drawer-head">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Layton Safety</span></div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span id="drawerBrand">Layton Safety</span></div>
       <button class="icon-btn" id="drawerClose" type="button" aria-label="Close menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
     <ul class="drawer-links" id="drawerLinks"></ul>
+    <div class="drawer-lang">
+      <label for="langSelect">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+        <span id="langLabel">Language</span>
+      </label>
+      <select class="input" id="langSelect"></select>
+    </div>
     <a class="drawer-crisis" href="tel:988">
-      <strong>Need to talk now?</strong>
-      <span>Call or text 988, free and confidential, 24/7</span>
+      <strong id="crisisTitle">Need to talk now?</strong>
+      <span id="crisisText">Call or text 988, free and confidential, 24/7</span>
     </a>
   </nav>
 
@@ -41,6 +53,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="i18n.js"></script>
   <script src="forms.js"></script>
   <script src="resources.js"></script>
   <script src="profile.js"></script>
