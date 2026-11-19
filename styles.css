@@ -150,22 +150,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .steps span { color: var(--text-muted); font-size: .95rem; }
 .res-foot { color: var(--text-muted); font-size: .85rem; margin-top: 8px; }
 
-/* ---------- Badges in the chrome ---------- */
-.menu-btn { position: relative; }
-.menu-dot {
-  position: absolute; top: 7px; right: 7px; width: 10px; height: 10px; border-radius: 50%;
-  background: var(--brand); border: 2px solid var(--surface);
-}
-.drawer-links .count {
-  margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
-  display: grid; place-items: center; background: var(--brand); color: var(--brand-ink);
-  font-size: .75rem; font-weight: 700;
-}
-
-/* ---------- Notifications ---------- */
-.notif-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.notif-intro #markAllBtn { flex: none; margin-right: -8px; white-space: nowrap; }
-.notif-intro .badge { display: inline-block; margin-left: 4px; vertical-align: 1px; }
+/* ---------- Filter chips & report list ---------- */
 .chips {
   display: flex; gap: 6px; margin: 0 -16px 16px; padding: 2px 16px; overflow-x: auto; scrollbar-width: none;
 }
@@ -177,17 +162,11 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
   cursor: pointer; font-weight: 600; font-size: .9rem;
 }
 .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
-.chip-count {
-  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center;
-  background: var(--brand); color: var(--brand-ink); font-size: .7rem; font-weight: 700;
-}
-.notif-group { margin-bottom: 20px; }
 .notif-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .notif {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow); overflow: hidden;
 }
-.notif.unread { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
 .notif-main {
   display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 14px; text-align: left;
   background: transparent; border: 0; cursor: pointer;
@@ -197,14 +176,11 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .notif-main .form-icon svg { width: 20px; height: 20px; }
 .notif-body { flex: 1; min-width: 0; display: grid; gap: 3px; }
 .notif-title { font-weight: 650; }
-.notif.unread .notif-title { font-weight: 750; }
-.notif-meta { color: var(--text-muted); font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notif-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; font-size: .85rem; color: var(--text-muted); }
 .notif-row > * { white-space: nowrap; }
 .pill { padding: 2px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
 .pill.resolved { background: var(--green-soft); color: var(--green); }
 .pill.update { background: var(--amber-soft); color: var(--amber); }
-.unread-dot { flex: none; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: var(--brand); }
 .notif-detail { display: grid; gap: 14px; padding: 0 14px 16px 66px; }
 .notif-detail .section-label { display: block; margin-bottom: 4px; font-size: .72rem; }
 .notif-detail p { font-size: .95rem; }
@@ -245,8 +221,6 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .report-chevron svg { width: 20px; height: 20px; transition: transform .15s; }
 .notif-main[aria-expanded="true"] .report-chevron svg { transform: rotate(180deg); }
 .report-detail { padding-left: 14px; }
-.report-update { padding: 12px; border-radius: var(--radius-sm); background: var(--surface-2); }
-.report-update a { color: var(--brand); font-weight: 600; }
 .report-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .report-actions p { font-size: .88rem; flex: 1; min-width: 180px; }
 .pill.filed { background: var(--blue-soft); color: var(--blue); }

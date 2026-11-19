@@ -3,7 +3,7 @@
  *
  * SAMPLE DATA: there's no sign-in or backend yet, so the profile and report
  * history are hard-coded. Record IDs, jobs and report text are borrowed from the
- * Layton 2026 dataset and line up with SAMPLE_NOTIFICATIONS; statuses are
+ * Layton 2026 dataset; statuses are
  * illustrative. Reports submitted in the app are also shown, read from this
  * browser's storage (see "myReports" in app.js).
  *

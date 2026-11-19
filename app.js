@@ -35,7 +35,6 @@
     heart: '<path d="M12 20s-8-4.6-8-10.5A4.5 4.5 0 0112 7a4.5 4.5 0 018 2.5C20 15.4 12 20 12 20z"/>',
     grid: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
-    bell: '<path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 004 0"/>',
     chat: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
     sparkle: '<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
     check: '<path d="M5 12l5 5 9-10"/>',
@@ -122,11 +121,6 @@
       profileState.filter = "all";
       profileState.expanded.clear();
       renderProfile();
-    } else if (location.hash === "#/notifications") {
-      endSession();
-      notifState.filter = "all";
-      notifState.expanded.clear();
-      renderNotifications();
     } else if (form) {
       if (!session || session.form !== form || session.submitted) {
         endSession();
@@ -174,7 +168,6 @@
 
   drawerLinks.innerHTML = `
     <li><a href="#/">${icon("grid")} All forms</a></li>
-    <li><a href="#/notifications">${icon("bell")} Notifications <span class="count" id="navNotifCount" hidden></span></a></li>
     <li><a href="#/profile">${icon("user")} My profile &amp; reports</a></li>
     <li class="group" aria-hidden="true">Report</li>
     ${FORMS.map((f) => `<li><a href="#/form/${f.id}">${icon(f.icon)} ${esc(f.title)}</a></li>`).join("")}
@@ -209,142 +202,6 @@
     const a = e.target.closest("a");
     if (a && a.getAttribute("href") === (location.hash || "#/")) { e.preventDefault(); closeDrawer(); }
   });
-
-  /* ---------------- Notifications ---------------- */
-
-  // INTEGRATION POINT: load the user's notifications from the backend instead.
-  const NOTIFICATIONS = SAMPLE_NOTIFICATIONS
-    .map((n) => ({ ...n, at: n.at ? new Date(n.at) : new Date(Date.now() - n.hoursAgo * 3600e3) }))
-    .sort((a, b) => b.at - a.at);
-
-  const readIds = new Set((() => {
-    try { return JSON.parse(store.get("readNotifications") || "[]"); } catch { return []; }
-  })());
-  const saveRead = () => { store.set("readNotifications", JSON.stringify([...readIds])); updateBadges(); };
-  const unreadCount = () => NOTIFICATIONS.filter((n) => !readIds.has(n.id)).length;
-
-  const notifState = { filter: "all", expanded: new Set() };
-  const NOTIF_FILTERS = [
-    { id: "all", label: "All", test: () => true },
-    { id: "unread", label: "Unread", test: (n) => !readIds.has(n.id) },
-    { id: "resolved", label: "Resolved", test: (n) => n.kind === "resolved" },
-    { id: "update", label: "In progress", test: (n) => n.kind === "update" },
-  ];
-
-  function updateBadges() {
-    const count = unreadCount();
-    const navCount = document.getElementById("navNotifCount");
-    navCount.hidden = !count;
-    navCount.textContent = count;
-    navCount.setAttribute("aria-label", `${count} unread`);
-    document.getElementById("menuDot").hidden = !count;
-    menuBtn.setAttribute("aria-label", count ? `Open menu, ${count} unread notifications` : "Open menu");
-  }
-
-  function relTime(d) {
-    const mins = Math.round((Date.now() - d) / 60000);
-    if (mins < 60) return mins < 2 ? "Just now" : `${mins}m ago`;
-    const hrs = Math.round(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.round(hrs / 24);
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  }
-
-  function dayGroup(d) {
-    const start = new Date(); start.setHours(0, 0, 0, 0);
-    if (d >= start) return "Today";
-    if (d >= start - 6 * 86400e3) return "This week";
-    return "Earlier";
-  }
-
-  function renderNotifications() {
-    backBtn.hidden = false;
-    topTitle.textContent = "Notifications";
-    document.title = "Notifications · Layton Safety Forms";
-
-    const filter = NOTIF_FILTERS.find((f) => f.id === notifState.filter);
-    const list = NOTIFICATIONS.filter(filter.test);
-    const groups = [];
-    for (const n of list) {
-      const g = dayGroup(n.at);
-      if (!groups.length || groups.at(-1).label !== g) groups.push({ label: g, items: [] });
-      groups.at(-1).items.push(n);
-    }
-    const unread = unreadCount();
-
-    const item = (n) => {
-      const form = FORMS.find((f) => f.id === n.formId);
-      const job = JOBS.find((j) => j.id === n.jobId);
-      const isUnread = !readIds.has(n.id);
-      const open = notifState.expanded.has(n.id);
-      const verb = n.kind === "resolved" ? "resolved" : "updated";
-      return `
-        <li class="notif ${isUnread ? "unread" : ""} ${open ? "open" : ""}" data-accent="${form?.accent || "blue"}">
-          <button type="button" class="notif-main" data-notif="${n.id}" aria-expanded="${open}" aria-controls="nd-${n.id}">
-            <span class="form-icon">${icon(form?.icon || "bell")}</span>
-            <span class="notif-body">
-              <span class="notif-title">
-                ${isUnread ? '<span class="visually-hidden">Unread: </span>' : ""}Your ${esc(form?.title || "report")} was ${verb}
-              </span>
-              <span class="notif-meta">${esc(n.recordId)} · ${esc(job ? job.name : n.jobId)}</span>
-              <span class="notif-row">
-                <span class="pill ${n.kind}">${esc(n.status)}</span>
-                <time datetime="${n.at.toISOString()}">${relTime(n.at)}</time>
-              </span>
-            </span>
-            ${isUnread ? '<span class="unread-dot" aria-hidden="true"></span>' : ""}
-          </button>
-          <div class="notif-detail" id="nd-${n.id}" ${open ? "" : "hidden"}>
-            <div><span class="section-label">You reported</span><p>${esc(n.report)}</p></div>
-            <div><span class="section-label">${n.kind === "resolved" ? "How it was resolved" : "Latest update"}</span><p>${esc(n.note)}</p>
-              <p class="muted notif-by">${esc(n.by)} · ${n.at.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p></div>
-          </div>
-        </li>`;
-    };
-
-    app.innerHTML = `
-      <section class="intro notif-intro">
-        <div>
-          <h1>Notifications</h1>
-          <p>Updates on reports you've submitted. <span class="badge">Sample data</span></p>
-        </div>
-        <button type="button" class="btn btn-ghost btn-sm" id="markAllBtn" ${unread ? "" : "disabled"}>${icon("check")} Mark all read</button>
-      </section>
-
-      <div class="chips" role="group" aria-label="Filter notifications">
-        ${NOTIF_FILTERS.map((f) => `<button type="button" class="chip" data-filter="${f.id}" aria-pressed="${f.id === notifState.filter}">${f.label}${f.id === "unread" && unread ? ` <span class="chip-count">${unread}</span>` : ""}</button>`).join("")}
-      </div>
-
-      ${groups.length ? groups.map((g) => `
-        <section class="notif-group" aria-label="${g.label}">
-          <p class="section-label">${g.label}</p>
-          <ul class="notif-list">${g.items.map(item).join("")}</ul>
-        </section>`).join("") : `
-        <div class="empty">
-          <span class="form-icon" data-accent="green">${icon("check")}</span>
-          <h2>${notifState.filter === "unread" ? "You're all caught up" : "Nothing here yet"}</h2>
-          <p class="muted">When a supervisor updates or resolves one of your reports, you'll see it here.</p>
-        </div>`}`;
-
-    app.querySelectorAll("[data-filter]").forEach((b) => b.addEventListener("click", () => {
-      notifState.filter = b.dataset.filter;
-      renderNotifications();
-    }));
-    app.querySelector("#markAllBtn").addEventListener("click", () => {
-      NOTIFICATIONS.forEach((n) => readIds.add(n.id));
-      saveRead();
-      renderNotifications();
-      toast("All notifications marked as read.");
-    });
-    app.querySelectorAll("[data-notif]").forEach((b) => b.addEventListener("click", () => {
-      const id = b.dataset.notif;
-      if (notifState.expanded.has(id)) notifState.expanded.delete(id); else notifState.expanded.add(id);
-      if (!readIds.has(id)) { readIds.add(id); saveRead(); }
-      renderNotifications();
-      app.querySelector(`[data-notif="${id}"]`)?.focus();
-    }));
-  }
 
   /* ---------------- Profile & my reports ---------------- */
 
@@ -410,7 +267,6 @@
       const form = FORMS.find((f) => f.id === r.formId);
       const job = JOBS.find((j) => j.id === r.fields.JOB_ID);
       const open = profileState.expanded.has(r.key);
-      const update = NOTIFICATIONS.find((n) => n.recordId === r.recordId);
       const rows = form.fields
         .filter((f) => r.fields[f.name] !== undefined && r.fields[f.name] !== "")
         .map((f) => `<tr><th scope="row">${esc(f.label)}</th><td>${esc(displayValue(f, r.fields[f.name]))}</td></tr>`).join("");
@@ -439,12 +295,6 @@
               ${rows}
               ${att ? `<tr><th scope="row">Attachments</th><td>${esc(att)}</td></tr>` : ""}
             </tbody></table>
-            ${update ? `
-              <div class="report-update">
-                <span class="section-label">${update.kind === "resolved" ? "How it was resolved" : "Latest update"}</span>
-                <p>${esc(update.note)}</p>
-                <p class="muted notif-by">${esc(update.by)} · <a href="#/notifications">See notifications</a></p>
-              </div>` : ""}
             ${r.kind === "local" ? `
               <div class="report-actions">
                 <p class="muted">Saved on this device only. It will be sent once submission is connected.</p>
@@ -1085,7 +935,6 @@
         <div class="tick">${icon("check")}</div>
         <h1>${esc(form.title)} ready</h1>
         <p>Sending isn't connected yet, so it's only saved on this device, under <a href="#/profile">My reports</a>. This is the record that would be submitted.</p>
-        <p>Once it's sent, you'll get a <a href="#/notifications">notification</a> when it's updated or resolved.</p>
       </section>
       <section class="panel">
         <table class="summary"><tbody>
@@ -1102,6 +951,5 @@
     app.querySelector("#homeBtn").addEventListener("click", () => { location.hash = "#/"; });
   }
 
-  updateBadges();
   route();
 })();
