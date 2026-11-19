@@ -1,0 +1,9 @@
+# Never upload secrets or local-only files to Vercel.
+.env
+.env.*
+*.patch
+db/
+dev-server.js
+.DS_Store
+.venv/
+misc/

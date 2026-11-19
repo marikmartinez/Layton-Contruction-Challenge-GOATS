@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/worker-app/index.html" },
+    { "source": "/:path((?!api/).+)", "destination": "/worker-app/:path" }
+  ],
+  "functions": {
+    "api/*.js": { "maxDuration": 60 }
+  }
+}
