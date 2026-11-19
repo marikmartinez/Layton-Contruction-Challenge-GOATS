@@ -560,7 +560,6 @@
       <section class="panel" aria-labelledby="describeTitle">
         <div class="panel-head">
           <h2 id="describeTitle">${icon("chat")} ${esc(t("Describe"))}</h2>
-          <span class="badge">${esc(t("Preview: not connected"))}</span>
         </div>
         <p class="prompt">${esc(t("Write it the way you'd tell a coworker. The form fields get pulled from what you write."))}</p>
         <label for="describeText" class="visually-hidden">${esc(t("Describe what happened"))}</label>
@@ -584,9 +583,28 @@
       session.dirty = true;
       sync();
     });
-    btn.addEventListener("click", () => {
-      // INTEGRATION POINT: send session.describe to field extraction, then applyExtracted(result).
-      toast(t("Description processing isn't connected yet."));
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      toast(t("Filling the form…"));
+      try {
+        const result = await extractFields(session.form, session.describe);
+        // Re-filling: undo earlier AI values the new description no longer supports.
+        for (const name of session.aiFilled || []) {
+          if (name in result) continue;
+          const f = session.form.fields.find((x) => x.name === name);
+          session.values[name] = f.defaultToday ? todayISO() : f.defaultValue ?? "";
+        }
+        session.aiFilled = Object.keys(result);
+        applyExtracted(result);
+        toast(Object.keys(result).length
+          ? t("Check the filled fields before you submit.")
+          : t("Couldn't find details to fill. Fill the form by hand."));
+      } catch (e) {
+        console.error("[form-filler] extraction failed", e);
+        toast(t("Couldn't fill the form. Try again or fill it by hand."));
+      } finally {
+        sync();
+      }
     });
     sync();
   }

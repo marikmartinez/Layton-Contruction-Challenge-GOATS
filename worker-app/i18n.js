@@ -301,10 +301,21 @@ const I18N = {
   "Describe what happened": ["Describe lo que pasó", "Descreva o que aconteceu", "Opisz, co się stało"],
   "Words: {n}": ["Palabras: {n}", "Palavras: {n}", "Słowa: {n}"],
   "Fill form from description": ["Llenar con la descripción", "Preencher com a descrição", "Wypełnij z opisu"],
-  "Description processing isn't connected yet.": [
-    "El procesamiento de descripciones aún no está conectado.",
-    "O processamento de descrições ainda não está conectado.",
-    "Przetwarzanie opisu nie jest jeszcze podłączone.",
+  "Filling the form…": ["Llenando el formulario…", "Preenchendo o formulário…", "Wypełnianie formularza…"],
+  "Check the filled fields before you submit.": [
+    "Revisa los campos llenados antes de enviar.",
+    "Confira os campos preenchidos antes de enviar.",
+    "Sprawdź wypełnione pola przed wysłaniem.",
+  ],
+  "Couldn't find details to fill. Fill the form by hand.": [
+    "No se encontraron datos para llenar. Llena el formulario a mano.",
+    "Não foram encontrados dados para preencher. Preencha o formulário à mão.",
+    "Nie znaleziono danych do wypełnienia. Wypełnij formularz ręcznie.",
+  ],
+  "Couldn't fill the form. Try again or fill it by hand.": [
+    "No se pudo llenar el formulario. Inténtalo de nuevo o llénalo a mano.",
+    "Não foi possível preencher o formulário. Tente de novo ou preencha à mão.",
+    "Nie udało się wypełnić formularza. Spróbuj ponownie lub wypełnij ręcznie.",
   ],
   "Stop recording": ["Detener grabación", "Parar gravação", "Zatrzymaj nagrywanie"],
   "Start recording": ["Empezar a grabar", "Começar a gravar", "Rozpocznij nagrywanie"],

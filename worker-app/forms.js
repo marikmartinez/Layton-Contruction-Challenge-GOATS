@@ -86,7 +86,7 @@ const FORMS = [
       { name: "REPORT_DATE", label: "Report date", type: "date", required: true, defaultToday: true, noFuture: true },
       {
         name: "HAZARD_CATEGORY", label: "Hazard category", type: "select", required: true,
-        options: ["Electrical", "Fall Protection", "Housekeeping", "Material Handling", "Struck-By"],
+        options: ["Electrical", "Ergonomics", "Fall Protection", "Housekeeping", "Material Handling", "Struck-By"],
       },
       {
         name: "GOOD_CATCH_DESCRIPTION", label: "What did you catch?", type: "textarea", required: true,
