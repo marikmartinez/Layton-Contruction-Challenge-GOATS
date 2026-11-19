@@ -283,8 +283,8 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 }
 
 /* Mode chooser */
-.mode-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-@media (max-width: 359px) { .mode-bar { grid-template-columns: repeat(2, 1fr); } }
+.mode-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+@media (max-width: 359px) { .mode-bar { gap: 6px; } }
 .mode-btn {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
   min-height: 72px; padding: 10px 6px;
@@ -339,6 +339,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
   border: 1px dashed var(--border-strong); border-radius: var(--radius-sm);
   background: var(--surface-2); color: var(--text-muted); font-size: .95rem;
 }
+textarea.voice-text { width: 100%; min-height: 120px; margin-top: 4px; }
 .clip-list { list-style: none; margin: 4px 0 0; padding: 0; width: 100%; display: grid; gap: 6px; }
 .clip {
   display: flex; align-items: center; gap: 10px; padding: 8px 10px;
@@ -365,8 +366,6 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .thumb button svg { width: 14px; height: 14px; stroke-width: 3; }
 
 .panel-foot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-.panel-foot .char-count { margin-right: auto; font-size: .85rem; }
-textarea.describe-input { min-height: 140px; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* Buttons */
@@ -453,3 +452,6 @@ select.input { appearance: none; padding-right: 36px;
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.transcript-label { display: flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 8px; font-size: .9rem; font-weight: 600; color: var(--text-muted); }
+.transcript-label svg { width: 16px; height: 16px; }
