@@ -6,9 +6,11 @@
 
 /* eslint-disable no-unused-vars */
 
-function extractableFields(form) {
+function extractableFields(form, photoOnly = false) {
   return form.fields
     .filter((f) => f.type !== "computed")
+    // From photos alone: skip what a picture can't show (job, dates, actions taken, injuries).
+    .filter((f) => !photoOnly || (f.type !== "job" && f.type !== "date" && !f.notFromPhoto))
     .map((f) => {
       const opts = f.type === "job" ? JOBS.map((j) => ({ value: j.id, label: `${j.name} (${j.status})` }))
         : f.type === "yesno" ? [{ value: "Y", label: "Yes" }, { value: "N", label: "No" }]
@@ -54,14 +56,14 @@ function jobIsAmbiguous(jobId, text) {
   return JOBS.filter((j) => j.name.toLowerCase().startsWith(base)).length > 1;
 }
 
-async function extractFields(form, text) {
-  const fields = extractableFields(form);
+async function extractFields(form, text, images = []) {
+  const fields = extractableFields(form, images.length > 0 && !text.trim());
   const d = new Date();
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const res = await fetch("/api/extract", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, fields, today, form: { title: form.title, blurb: form.blurb } }),
+    body: JSON.stringify({ text, images, fields, today, form: { title: form.title, blurb: form.blurb } }),
   });
   if (!res.ok) throw new Error(await res.text());
   return cleanExtracted(fields, await res.json(), text);

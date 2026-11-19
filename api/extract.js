@@ -1,13 +1,15 @@
 /*
- * POST /api/extract — fill a form draft from a worker's description.
- * Body: { text, fields: [{ name, label, type, options? }], today: "YYYY-MM-DD" }
+ * POST /api/extract — fill a form draft from a worker's description and/or photos.
+ * Body: { text, images: [base64 JPEG], fields: [{ name, label, type, options? }], today: "YYYY-MM-DD" }
  * Returns { FIELD_NAME: value } (the browser re-checks values against options).
  * The OpenAI key stays on the server (OPENAI_API_KEY env var).
  */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  const { text, fields, today, form } = req.body || {};
-  if (!text?.trim() || !Array.isArray(fields)) return res.status(400).json({ error: "text and fields are required" });
+  const { text = "", fields, today, form, images = [] } = req.body || {};
+  // Photos: base64 JPEGs, already shrunk by the app. A few are enough to read a scene.
+  const photos = (Array.isArray(images) ? images : []).filter((b) => typeof b === "string" && b.length < 1_500_000).slice(0, 3);
+  if ((!text.trim() && !photos.length) || !Array.isArray(fields)) return res.status(400).json({ error: "text or images, and fields, are required" });
 
   const fieldList = fields.map((f) => {
     let rule;
@@ -41,9 +43,18 @@ Rules:
 - Match by meaning, not exact words. A worker may name a job by number ("job 1", "001") or by project name ("copper civic"); use the words after "=" to match. If two values fit equally well, use null (e.g. "canyon commercial" with no number matches JOB-001 and JOB-008, so JOB_ID is null).
 - Pick a value when the details clearly point to it, even if the worker doesn't use the form's words (e.g. "tripped over rebar on the floor" -> Same-Level Slip / Trip; "only needed a bandage" -> First Aid). If it would be a guess, use null.
 - Today is ${today}. Turn relative dates ("this morning", "yesterday", "last Friday") into dates.
-- Text fields: write in English, keep every concrete detail the worker gave (what, where, equipment, who, what was done). Fix typos. Don't add facts that weren't said, don't add a job name or number the worker didn't say, and don't comment on what's missing.`,
+- Text fields: write in English, keep every concrete detail the worker gave (what, where, equipment, who, what was done). Fix typos. Don't add facts that weren't said, don't add a job name or number the worker didn't say, and don't comment on what's missing.
+- If photos are attached, fill only what is clearly visible in them (the hazard, the condition, the equipment). A photo can't tell you the job, dates, people's names, an injury, or what anyone did about the hazard, so use null for those unless the text says them. Never write "presumably" or guess.`,
         },
-        { role: "user", content: text },
+        {
+          role: "user",
+          content: photos.length
+            ? [
+              { type: "text", text: text.trim() || "(No description. Use the photos.)" },
+              ...photos.map((b64) => ({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } })),
+            ]
+            : text,
+        },
       ],
     }),
   });

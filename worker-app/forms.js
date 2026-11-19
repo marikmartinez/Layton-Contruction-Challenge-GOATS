@@ -16,6 +16,9 @@
  *   hint        helper text under the label
  *   compute     for computed: (values) => string
  *   noFuture    date may not be after today
+ *   wide        take the full row (long options)
+ *   notFromPhoto  a photo can't show this (what someone did, treatment, the injury),
+ *                 so photo-only AI filling never sends or fills it
  *   notBefore   date may not be before the named date field
  */
 
@@ -69,6 +72,21 @@ const HAZARD_CATEGORIES_ISSUES = [
   "Fire Prevention", "Housekeeping", "Ladders", "Scaffolding", "Struck-By",
 ];
 
+// The 10 unsafe conditions that recur in issues.csv (one per hazard category).
+// Picking one lets a new report be matched to past unresolved issues.
+const RECURRING_CONDITIONS = [
+  "The permit board lacked an updated atmospheric test.",
+  "A temporary power cord had damaged insulation near the connector.",
+  "A crew manually lifted heavy fixtures without an available lifting aid.",
+  "Excavated material was stored too close to the trench edge.",
+  "An unprotected floor opening was observed without a secured cover or guardrail.",
+  "Hot work began without a documented permit or nearby extinguisher.",
+  "Scrap material narrowed the designated access route and created a trip hazard.",
+  "An extension ladder was set at an unsafe angle and was not secured.",
+  "A scaffold platform had an open gap and lacked a current inspection tag.",
+  "Pedestrian travel crossed an equipment route without a spotter.",
+];
+
 const FORMS = [
   {
     id: "good-catch",
@@ -98,12 +116,12 @@ const FORMS = [
         hint: "How bad could it have been if nobody caught it?",
       },
       {
-        name: "IMMEDIATE_ACTION_TAKEN", label: "Immediate action taken", type: "textarea", required: true,
+        name: "IMMEDIATE_ACTION_TAKEN", label: "Immediate action taken", type: "textarea", required: true, notFromPhoto: true,
         placeholder: "e.g. Cord removed from service.",
       },
-      { name: "FOLLOW_UP_REQUIRED_FLAG", label: "Follow-up required?", type: "yesno", required: true },
+      { name: "FOLLOW_UP_REQUIRED_FLAG", label: "Follow-up required?", type: "yesno", required: true, notFromPhoto: true },
       {
-        name: "FOLLOW_UP_STATUS", label: "Follow-up status", type: "select", required: true,
+        name: "FOLLOW_UP_STATUS", label: "Follow-up status", type: "select", required: true, notFromPhoto: true,
         options: ["Open", "Completed"],
         showIf: (v) => v.FOLLOW_UP_REQUIRED_FLAG === "Y",
       },
@@ -127,13 +145,24 @@ const FORMS = [
       { name: "JOB_ID", label: "Job", type: "job", required: true },
       { name: "OPEN_DATE", label: "Date observed", type: "date", required: true, defaultToday: true, noFuture: true },
       {
+        name: "OBSERVED_CONDITION", label: "Observed unsafe condition", type: "select", required: true, wide: true,
+        options: [...RECURRING_CONDITIONS, { value: "Other", label: "Other (a new condition)" }],
+        hint: "Pick the closest match so it can be linked to past unresolved issues. Choose Other if it's new.",
+      },
+      {
+        name: "NEW_CONDITION", label: "Describe the new condition", type: "text", required: true, wide: true,
+        placeholder: "e.g. Rebar caps missing on vertical bars near the east wall.",
+        hint: "One short sentence. Similar new reports can be grouped later.",
+        showIf: (v) => v.OBSERVED_CONDITION === "Other",
+      },
+      {
         name: "ISSUE_DESCRIPTION", label: "Describe the issue", type: "textarea", required: true,
         placeholder: "e.g. Unprotected floor opening without a secured cover or guardrail.",
       },
       { name: "HAZARD_CATEGORY", label: "Hazard category", type: "select", required: true, options: HAZARD_CATEGORIES_ISSUES },
       { name: "SEVERITY", label: "Severity", type: "select", required: true, options: ["Low", "Medium", "High", "Critical"] },
       { name: "ROOT_CAUSE", label: "Root cause", type: "select", options: ["Coordination", "Equipment", "Guarding", "Housekeeping", "Inspection", "Planning", "Procedure"] },
-      { name: "STATUS", label: "Status", type: "select", required: true, options: ["Open", "In Progress", "Closed"], defaultValue: "Open" },
+      { name: "STATUS", label: "Status", type: "select", required: true, options: ["Open", "In Progress", "Closed"], defaultValue: "Open", notFromPhoto: true },
       { name: "DUE_DATE", label: "Correct by", type: "date", required: true, notBefore: "OPEN_DATE" },
       {
         name: "CLOSURE_DATE", label: "Closure date", type: "date", required: true, notBefore: "OPEN_DATE", noFuture: true,
@@ -157,7 +186,7 @@ const FORMS = [
       { name: "JOB_ID", label: "Job", type: "job", required: true },
       { name: "INCIDENT_DATE", label: "Incident date", type: "date", required: true, defaultToday: true, noFuture: true },
       {
-        name: "INCIDENT_CLASSIFICATION", label: "Classification", type: "select", required: true,
+        name: "INCIDENT_CLASSIFICATION", label: "Classification", type: "select", required: true, notFromPhoto: true,
         options: [
           { value: "First Aid", label: "First Aid" },
           { value: "REC", label: "REC (Recordable)" },
@@ -180,11 +209,11 @@ const FORMS = [
         ],
       },
       {
-        name: "BODY_PART_INJURED", label: "Body part injured", type: "select", required: true,
+        name: "BODY_PART_INJURED", label: "Body part injured", type: "select", required: true, notFromPhoto: true,
         options: ["Ankle / Foot", "Eye", "Forearm", "Hand / Finger", "Knee", "Lower Back", "Lower Leg", "Shoulder", "Wrist"],
       },
       {
-        name: "LTA_LESSON_NUMBER", label: "LTA lesson number", type: "text",
+        name: "LTA_LESSON_NUMBER", label: "LTA lesson number", type: "text", notFromPhoto: true,
         placeholder: "e.g. LTA-002",
         showIf: (v) => v.INCIDENT_CLASSIFICATION === "Lost Time Accident",
       },

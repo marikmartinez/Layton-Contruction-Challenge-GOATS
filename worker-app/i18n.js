@@ -164,6 +164,74 @@ const I18N = {
   "Follow-up status": ["Estado del seguimiento", "Status do acompanhamento", "Status dalszych działań"],
   "Date observed": ["Fecha observada", "Data da observação", "Data zauważenia"],
   "Describe the issue": ["Describe el problema", "Descreva o problema", "Opisz problem"],
+  "Observed unsafe condition": ["Condición insegura observada", "Condição insegura observada", "Zaobserwowany niebezpieczny stan"],
+  "Pick the closest match so it can be linked to past unresolved issues. Choose Other if it's new.": [
+    "Elige la opción más parecida para vincularla con problemas anteriores sin resolver. Elige Otra si es nueva.",
+    "Escolha a opção mais parecida para ligá-la a problemas anteriores não resolvidos. Escolha Outra se for nova.",
+    "Wybierz najbliższą opcję, aby powiązać ją z wcześniejszymi nierozwiązanymi problemami. Wybierz Inne, jeśli to coś nowego.",
+  ],
+  "Other (a new condition)": ["Otra (una condición nueva)", "Outra (uma condição nova)", "Inne (nowy stan)"],
+  "Describe the new condition": ["Describe la condición nueva", "Descreva a condição nova", "Opisz nowy stan"],
+  "e.g. Rebar caps missing on vertical bars near the east wall.": [
+    "ej. Faltan tapas de varilla en las barras verticales cerca del muro este.",
+    "ex. Faltam protetores nas pontas dos vergalhões verticais perto da parede leste.",
+    "np. Brak osłon na pionowych prętach zbrojeniowych przy wschodniej ścianie.",
+  ],
+  "One short sentence. Similar new reports can be grouped later.": [
+    "Una frase corta. Los reportes nuevos parecidos se pueden agrupar después.",
+    "Uma frase curta. Relatos novos parecidos podem ser agrupados depois.",
+    "Jedno krótkie zdanie. Podobne nowe zgłoszenia można później pogrupować.",
+  ],
+  "The permit board lacked an updated atmospheric test.": [
+    "El tablero de permisos no tenía una prueba atmosférica actualizada.",
+    "O quadro de permissões não tinha um teste atmosférico atualizado.",
+    "Na tablicy zezwoleń brakowało aktualnego pomiaru atmosfery.",
+  ],
+  "A temporary power cord had damaged insulation near the connector.": [
+    "Un cable de energía temporal tenía el aislamiento dañado cerca del conector.",
+    "Um cabo de energia provisória tinha o isolamento danificado perto do conector.",
+    "Przewód zasilania tymczasowego miał uszkodzoną izolację przy złączu.",
+  ],
+  "A crew manually lifted heavy fixtures without an available lifting aid.": [
+    "Una cuadrilla levantó a mano accesorios pesados sin una ayuda de levantamiento disponible.",
+    "Uma equipe levantou peças pesadas à mão sem um auxílio de levantamento disponível.",
+    "Brygada ręcznie podnosiła ciężkie elementy bez dostępnego sprzętu do podnoszenia.",
+  ],
+  "Excavated material was stored too close to the trench edge.": [
+    "El material excavado estaba demasiado cerca del borde de la zanja.",
+    "O material escavado estava armazenado perto demais da borda da vala.",
+    "Urobek był składowany zbyt blisko krawędzi wykopu.",
+  ],
+  "An unprotected floor opening was observed without a secured cover or guardrail.": [
+    "Se observó una abertura en el piso sin tapa asegurada ni barandal.",
+    "Foi observada uma abertura no piso sem tampa fixada nem guarda-corpo.",
+    "Zauważono niezabezpieczony otwór w stropie bez pokrywy i barierki.",
+  ],
+  "Hot work began without a documented permit or nearby extinguisher.": [
+    "Se comenzó trabajo en caliente sin permiso documentado ni extintor cercano.",
+    "Trabalho a quente começou sem permissão documentada nem extintor por perto.",
+    "Prace gorące rozpoczęto bez pisemnego zezwolenia i gaśnicy w pobliżu.",
+  ],
+  "Scrap material narrowed the designated access route and created a trip hazard.": [
+    "El material de desecho estrechó la ruta de acceso y creó un riesgo de tropiezo.",
+    "Sobras de material estreitaram a rota de acesso e criaram risco de tropeço.",
+    "Odpady zwęziły wyznaczoną drogę dojścia i stworzyły ryzyko potknięcia.",
+  ],
+  "An extension ladder was set at an unsafe angle and was not secured.": [
+    "Una escalera extensible estaba en un ángulo inseguro y no estaba asegurada.",
+    "Uma escada extensível estava em ângulo inseguro e não estava presa.",
+    "Drabina przystawna stała pod niebezpiecznym kątem i nie była zabezpieczona.",
+  ],
+  "A scaffold platform had an open gap and lacked a current inspection tag.": [
+    "Una plataforma de andamio tenía un hueco abierto y no tenía etiqueta de inspección vigente.",
+    "Uma plataforma de andaime tinha um vão aberto e não tinha etiqueta de inspeção válida.",
+    "Pomost rusztowania miał szczelinę i brakowało aktualnej zawieszki kontrolnej.",
+  ],
+  "Pedestrian travel crossed an equipment route without a spotter.": [
+    "El paso de peatones cruzaba una ruta de equipo sin un señalero.",
+    "A passagem de pedestres cruzava uma rota de equipamentos sem sinaleiro.",
+    "Ruch pieszych przecinał trasę sprzętu bez osoby asekurującej.",
+  ],
   "Severity": ["Gravedad", "Gravidade", "Waga"],
   "Root cause": ["Causa raíz", "Causa raiz", "Przyczyna źródłowa"],
   "Status": ["Estado", "Status", "Status"],
@@ -291,8 +359,33 @@ const I18N = {
     "Mantenha pelo menos uma forma de preencher.",
     "Zostaw przynajmniej jeden sposób wypełniania.",
   ],
-  "Preview: not connected": ["Vista previa: sin conexión", "Prévia: não conectado", "Podgląd: niepodłączone"],
   "Filling the form…": ["Llenando el formulario…", "Preenchendo o formulário…", "Wypełnianie formularza…"],
+  "AI · check": ["IA · revisar", "IA · conferir", "AI · sprawdź"],
+  "I checked the {n} AI-filled fields": [
+    "Revisé los {n} campos que llenó la IA",
+    "Conferi os {n} campos preenchidos pela IA",
+    "Sprawdziłem {n} pól wypełnionych przez AI",
+  ],
+  "AI can make mistakes. Check the results.": [
+    "La IA puede equivocarse. Revisa los resultados.",
+    "A IA pode errar. Confira os resultados.",
+    "AI może się mylić. Sprawdź wyniki.",
+  ],
+  "AI looks at the photos and suggests values for empty fields.": [
+    "La IA mira las fotos y sugiere valores para los campos vacíos.",
+    "A IA analisa as fotos e sugere valores para os campos vazios.",
+    "AI ogląda zdjęcia i proponuje wartości dla pustych pól.",
+  ],
+  "Check the AI-filled fields and tick the box before you submit.": [
+    "Revisa los campos que llenó la IA y marca la casilla antes de enviar.",
+    "Confira os campos preenchidos pela IA e marque a caixa antes de enviar.",
+    "Sprawdź pola wypełnione przez AI i zaznacz pole wyboru przed wysłaniem.",
+  ],
+  "Everything the AI found is already filled in.": [
+    "Todo lo que encontró la IA ya está lleno.",
+    "Tudo o que a IA encontrou já está preenchido.",
+    "Wszystko, co znalazła AI, jest już wypełnione.",
+  ],
   "Check the filled fields before you submit.": [
     "Revisa los campos llenados antes de enviar.",
     "Confira os campos preenchidos antes de enviar.",
@@ -338,12 +431,34 @@ const I18N = {
   "Upload": ["Subir", "Enviar arquivo", "Prześlij"],
   "or drag images here": ["o arrastra imágenes aquí", "ou arraste imagens aqui", "lub przeciągnij zdjęcia tutaj"],
   "Fill form from photos": ["Llenar con las fotos", "Preencher com as fotos", "Wypełnij ze zdjęć"],
-  "Photo processing isn't connected yet.": [
-    "El procesamiento de fotos aún no está conectado.",
-    "O processamento de fotos ainda não está conectado.",
-    "Przetwarzanie zdjęć nie jest jeszcze podłączone.",
+  "AI suggestion": ["Sugerencia de IA", "Sugestão da IA", "Sugestia AI"],
+  "Analyzing photos…": ["Analizando fotos…", "Analisando fotos…", "Analiza zdjęć…"],
+  "AI suggestion filled in from the photos. Check it before you submit.": [
+    "Se llenó una sugerencia de IA a partir de las fotos. Revísala antes de enviar.",
+    "Sugestão da IA preenchida a partir das fotos. Confira antes de enviar.",
+    "Wpisano sugestię AI na podstawie zdjęć. Sprawdź ją przed wysłaniem.",
+  ],
+  "Couldn't find anything new to fill from the photos.": [
+    "No se encontró nada nuevo para llenar con las fotos.",
+    "Não foi encontrado nada novo para preencher com as fotos.",
+    "Na zdjęciach nie znaleziono nic nowego do wpisania.",
+  ],
+  "Couldn't read the photos. Try again or fill it by hand.": [
+    "No se pudieron leer las fotos. Inténtalo de nuevo o llénalo a mano.",
+    "Não foi possível ler as fotos. Tente de novo ou preencha à mão.",
+    "Nie udało się odczytać zdjęć. Spróbuj ponownie lub wypełnij ręcznie.",
   ],
   "Photo {n}": ["Foto {n}", "Foto {n}", "Zdjęcie {n}"],
+  "Only the first 5 photos are saved with the report.": [
+    "Solo se guardan las primeras 5 fotos con el reporte.",
+    "Só as primeiras 5 fotos são salvas com o relato.",
+    "Do zgłoszenia zapisywanych jest tylko 5 pierwszych zdjęć.",
+  ],
+  "Some photos couldn't be saved. Up to 5 photos are kept with a report.": [
+    "Algunas fotos no se pudieron guardar. Se guardan hasta 5 fotos por reporte.",
+    "Algumas fotos não foram salvas. Até 5 fotos ficam com cada relato.",
+    "Nie udało się zapisać części zdjęć. Do zgłoszenia zapisuje się do 5 zdjęć.",
+  ],
   "Remove photo {n}": ["Quitar foto {n}", "Remover foto {n}", "Usuń zdjęcie {n}"],
   "Form details": ["Datos del formulario", "Dados do formulário", "Szczegóły formularza"],
   "Review fields": ["Revisar campos", "Revisar campos", "Sprawdź pola"],
@@ -364,12 +479,20 @@ const I18N = {
   "Fields that need attention: {n}": ["Campos por revisar: {n}", "Campos que precisam de atenção: {n}", "Pola do poprawienia: {n}"],
 
   /* ---- Done screen ---- */
-  "{form} ready": ["{form}: listo", "{form}: pronto", "{form}: gotowe"],
-  "Sending isn't connected yet, so it's only saved on this device. This is the record that would be submitted.": [
-    "El envío aún no está conectado, así que solo se guardó en este dispositivo. Este es el registro que se enviaría.",
-    "O envio ainda não está conectado, então foi salvo só neste aparelho. Este é o registro que seria enviado.",
-    "Wysyłanie nie jest jeszcze podłączone, więc zapisano to tylko na tym urządzeniu. Tak wyglądałoby wysłane zgłoszenie.",
+  "{form} sent": ["{form}: enviado", "{form}: enviado", "{form}: wysłane"],
+  "{form} saved": ["{form}: guardado", "{form}: salvo", "{form}: zapisane"],
+  "The safety team can see it now. You can follow its status in My reports.": [
+    "El equipo de seguridad ya lo puede ver. Puedes seguir su estado en Mis reportes.",
+    "A equipe de segurança já pode ver. Você pode acompanhar o status em Meus relatos.",
+    "Zespół BHP już to widzi. Status możesz śledzić w Moich zgłoszeniach.",
   ],
+  "Couldn't reach the server, so it's saved on this device only. Try again when you're back online.": [
+    "No se pudo conectar con el servidor, así que solo se guardó en este dispositivo. Inténtalo de nuevo cuando tengas conexión.",
+    "Não foi possível conectar ao servidor, então foi salvo só neste aparelho. Tente de novo quando estiver online.",
+    "Nie udało się połączyć z serwerem, więc zapisano to tylko na tym urządzeniu. Spróbuj ponownie po odzyskaniu połączenia.",
+  ],
+  "Sending…": ["Enviando…", "Enviando…", "Wysyłanie…"],
+  "Submitted": ["Enviado", "Enviado", "Wysłane"],
   "View in My reports": ["Ver en Mis reportes", "Ver em Meus relatos", "Zobacz w Moich zgłoszeniach"],
   "Attachments": ["Adjuntos", "Anexos", "Załączniki"],
   "Photos: {n}": ["Fotos: {n}", "Fotos: {n}", "Zdjęcia: {n}"],
@@ -396,10 +519,10 @@ const I18N = {
   "Filed": ["Registrado", "Registrado", "Złożone"],
   "How it was resolved": ["Cómo se resolvió", "Como foi resolvido", "Jak to rozwiązano"],
   "Latest update": ["Última actualización", "Última atualização", "Ostatnia aktualizacja"],
-  "Saved on this device only. It will be sent once submission is connected.": [
-    "Guardado solo en este dispositivo. Se enviará cuando el envío esté conectado.",
-    "Salvo só neste aparelho. Será enviado quando o envio estiver conectado.",
-    "Zapisane tylko na tym urządzeniu. Zostanie wysłane po podłączeniu wysyłania.",
+  "Saved on this device only. It couldn't be sent.": [
+    "Guardado solo en este dispositivo. No se pudo enviar.",
+    "Salvo só neste aparelho. Não foi possível enviar.",
+    "Zapisane tylko na tym urządzeniu. Nie udało się go wysłać.",
   ],
   "Remove": ["Quitar", "Remover", "Usuń"],
   "Remove this report from this device?": ["¿Quitar este reporte de este dispositivo?", "Remover este relato deste aparelho?", "Usunąć to zgłoszenie z tego urządzenia?"],
@@ -411,6 +534,47 @@ const I18N = {
     "Wysłane zgłoszenia pojawią się tutaj wraz ze statusem.",
   ],
   "Start a report": ["Hacer un reporte", "Fazer um relato", "Zrób zgłoszenie"],
+  "Loading your reports…": ["Cargando tus reportes…", "Carregando seus relatos…", "Wczytywanie zgłoszeń…"],
+  "Couldn't load your reports from the server.": [
+    "No se pudieron cargar tus reportes del servidor.",
+    "Não foi possível carregar seus relatos do servidor.",
+    "Nie udało się wczytać zgłoszeń z serwera.",
+  ],
+  "You can change or delete this until the safety team picks it up.": [
+    "Puedes cambiarlo o borrarlo hasta que el equipo de seguridad lo tome.",
+    "Você pode alterar ou excluir até a equipe de segurança assumir.",
+    "Możesz to zmienić lub usunąć, dopóki zespół BHP się tym nie zajmie.",
+  ],
+  "Locked: the safety team has picked this up.": [
+    "Bloqueado: el equipo de seguridad ya lo tomó.",
+    "Bloqueado: a equipe de segurança já assumiu.",
+    "Zablokowane: zespół BHP już się tym zajął.",
+  ],
+  "Edit": ["Editar", "Editar", "Edytuj"],
+  "Delete": ["Borrar", "Excluir", "Usuń"],
+  "Delete this report? This can't be undone.": [
+    "¿Borrar este reporte? No se puede deshacer.",
+    "Excluir este relato? Não dá para desfazer.",
+    "Usunąć to zgłoszenie? Tego nie można cofnąć.",
+  ],
+  "Report deleted.": ["Reporte borrado.", "Relato excluído.", "Zgłoszenie usunięte."],
+  "Couldn't delete it. The safety team may have already picked it up.": [
+    "No se pudo borrar. Puede que el equipo de seguridad ya lo haya tomado.",
+    "Não foi possível excluir. A equipe de segurança pode já ter assumido.",
+    "Nie udało się usunąć. Zespół BHP mógł już się tym zająć.",
+  ],
+  "Save changes": ["Guardar cambios", "Salvar alterações", "Zapisz zmiany"],
+  "Couldn't save changes. The safety team may have already picked this up.": [
+    "No se pudieron guardar los cambios. Puede que el equipo de seguridad ya lo haya tomado.",
+    "Não foi possível salvar. A equipe de segurança pode já ter assumido.",
+    "Nie udało się zapisać zmian. Zespół BHP mógł już się tym zająć.",
+  ],
+  "{form} updated": ["{form}: actualizado", "{form}: atualizado", "{form}: zaktualizowane"],
+  "Your changes are saved. You can follow its status in My reports.": [
+    "Tus cambios se guardaron. Puedes seguir su estado en Mis reportes.",
+    "Suas alterações foram salvas. Acompanhe o status em Meus relatos.",
+    "Zmiany zapisane. Status możesz śledzić w Moich zgłoszeniach.",
+  ],
 
   /* ---- Resources page ---- */
   "Looking after your head is part of working safe. These services are free and confidential, for you or a coworker.": [
