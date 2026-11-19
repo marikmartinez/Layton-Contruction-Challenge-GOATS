@@ -457,3 +457,5 @@ select.input { appearance: none; padding-right: 36px;
 .transcript-label svg { width: 16px; height: 16px; }
 
 .demo-note { margin: -4px 0 12px; font-size: .85rem; }
+
+.report-lock { margin: 10px 0 0; font-size: .85rem; }

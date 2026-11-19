@@ -6,14 +6,18 @@ import { extname, join, normalize } from "node:path";
 import extract from "./api/extract.js";
 import transcribe from "./api/transcribe.js";
 import submitReport from "./api/submit.js";
+import reports from "./api/reports.js";
+import dashboard from "./api/dashboard.js";
 
-const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport };
+const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport, "/api/reports": reports, "/api/dashboard": dashboard };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 
 http.createServer(async (req, res) => {
-  const api = API[req.url];
+  const url = new URL(req.url, "http://localhost");
+  const api = API[url.pathname];
   if (api) {
+    req.query = Object.fromEntries(url.searchParams);
     let body = "";
     for await (const chunk of req) body += chunk;
     try { req.body = body ? JSON.parse(body) : {}; } catch { req.body = {}; }

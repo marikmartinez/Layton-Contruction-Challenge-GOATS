@@ -418,6 +418,16 @@ const I18N = {
     "Demo: wpisano przykładowe wartości. Sprawdź je przed wysłaniem.",
   ],
   "Photo {n}": ["Foto {n}", "Foto {n}", "Zdjęcie {n}"],
+  "Only the first 5 photos are saved with the report.": [
+    "Solo se guardan las primeras 5 fotos con el reporte.",
+    "Só as primeiras 5 fotos são salvas com o relato.",
+    "Do zgłoszenia zapisywanych jest tylko 5 pierwszych zdjęć.",
+  ],
+  "Some photos couldn't be saved. Up to 5 photos are kept with a report.": [
+    "Algunas fotos no se pudieron guardar. Se guardan hasta 5 fotos por reporte.",
+    "Algumas fotos não foram salvas. Até 5 fotos ficam com cada relato.",
+    "Nie udało się zapisać części zdjęć. Do zgłoszenia zapisuje się do 5 zdjęć.",
+  ],
   "Remove photo {n}": ["Quitar foto {n}", "Remover foto {n}", "Usuń zdjęcie {n}"],
   "Form details": ["Datos del formulario", "Dados do formulário", "Szczegóły formularza"],
   "Review fields": ["Revisar campos", "Revisar campos", "Sprawdź pola"],
@@ -493,6 +503,47 @@ const I18N = {
     "Wysłane zgłoszenia pojawią się tutaj wraz ze statusem.",
   ],
   "Start a report": ["Hacer un reporte", "Fazer um relato", "Zrób zgłoszenie"],
+  "Loading your reports…": ["Cargando tus reportes…", "Carregando seus relatos…", "Wczytywanie zgłoszeń…"],
+  "Couldn't load your reports from the server.": [
+    "No se pudieron cargar tus reportes del servidor.",
+    "Não foi possível carregar seus relatos do servidor.",
+    "Nie udało się wczytać zgłoszeń z serwera.",
+  ],
+  "You can change or delete this until the safety team picks it up.": [
+    "Puedes cambiarlo o borrarlo hasta que el equipo de seguridad lo tome.",
+    "Você pode alterar ou excluir até a equipe de segurança assumir.",
+    "Możesz to zmienić lub usunąć, dopóki zespół BHP się tym nie zajmie.",
+  ],
+  "Locked: the safety team has picked this up.": [
+    "Bloqueado: el equipo de seguridad ya lo tomó.",
+    "Bloqueado: a equipe de segurança já assumiu.",
+    "Zablokowane: zespół BHP już się tym zajął.",
+  ],
+  "Edit": ["Editar", "Editar", "Edytuj"],
+  "Delete": ["Borrar", "Excluir", "Usuń"],
+  "Delete this report? This can't be undone.": [
+    "¿Borrar este reporte? No se puede deshacer.",
+    "Excluir este relato? Não dá para desfazer.",
+    "Usunąć to zgłoszenie? Tego nie można cofnąć.",
+  ],
+  "Report deleted.": ["Reporte borrado.", "Relato excluído.", "Zgłoszenie usunięte."],
+  "Couldn't delete it. The safety team may have already picked it up.": [
+    "No se pudo borrar. Puede que el equipo de seguridad ya lo haya tomado.",
+    "Não foi possível excluir. A equipe de segurança pode já ter assumido.",
+    "Nie udało się usunąć. Zespół BHP mógł już się tym zająć.",
+  ],
+  "Save changes": ["Guardar cambios", "Salvar alterações", "Zapisz zmiany"],
+  "Couldn't save changes. The safety team may have already picked this up.": [
+    "No se pudieron guardar los cambios. Puede que el equipo de seguridad ya lo haya tomado.",
+    "Não foi possível salvar. A equipe de segurança pode já ter assumido.",
+    "Nie udało się zapisać zmian. Zespół BHP mógł już się tym zająć.",
+  ],
+  "{form} updated": ["{form}: actualizado", "{form}: atualizado", "{form}: zaktualizowane"],
+  "Your changes are saved. You can follow its status in My reports.": [
+    "Tus cambios se guardaron. Puedes seguir su estado en Mis reportes.",
+    "Suas alterações foram salvas. Acompanhe o status em Meus relatos.",
+    "Zmiany zapisane. Status możesz śledzić w Moich zgłoszeniach.",
+  ],
 
   /* ---- Resources page ---- */
   "Looking after your head is part of working safe. These services are free and confidential, for you or a coworker.": [

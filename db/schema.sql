@@ -8,7 +8,7 @@ create table if not exists reports (
   reporter    text,
   status      text not null default 'Submitted',
   fields      jsonb not null,               -- { DATASET_COLUMN: value }, same names as the CSVs
-  attachments jsonb not null default '{}',  -- counts only: { photos, voiceClips, description }
+  attachments jsonb not null default '{}',  -- { photos, voiceClips, description, photoPaths: [...] } (photos are in Storage, see photos.sql)
   transcript  text,                         -- what the worker said or typed
 
   -- Copied out of `fields` so dashboards can filter and group without reading JSON.
@@ -17,13 +17,10 @@ create table if not exists reports (
   hazard_category    text generated always as (coalesce(fields->>'HAZARD_CATEGORY', fields->>'OSHA_HAZARD_CATEGORY')) stored,
   severity           text generated always as (coalesce(fields->>'SEVERITY', fields->>'POTENTIAL_SEVERITY')) stored,
   observed_condition text generated always as (fields->>'OBSERVED_CONDITION') stored,  -- one of the 10 recurring conditions, or 'Other'
-  new_condition      text generated always as (fields->>'NEW_CONDITION') stored        -- filled when observed_condition = 'Other'
+  new_condition      text generated always as (fields->>'NEW_CONDITION') stored,       -- filled when observed_condition = 'Other'
+  photo_count        int  generated always as (jsonb_array_length(coalesce(attachments->'photoPaths', '[]'::jsonb))) stored
 );
 
 -- Locked by default: with RLS on and no policies, only the server key can read or write.
 alter table reports enable row level security;
 
--- Example for the dashboard: new worker reports per recurring condition and job.
--- select observed_condition, job_id, count(*) as reports
--- from reports where form_id = 'issue'
--- group by 1, 2 order by reports desc;

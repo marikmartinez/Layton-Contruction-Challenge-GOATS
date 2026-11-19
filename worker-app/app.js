@@ -123,9 +123,21 @@
       endSession();
       profileState.filter = "all";
       profileState.expanded.clear();
+      profileState.reports = null;
       renderProfile();
+      loadMyReports();
     } else if (form) {
-      if (!session || session.form !== form || session.submitted) {
+      const editId = Number((location.hash.match(/[?&]edit=(\d+)/) || [])[1]);
+      if (editId) {
+        // Opened from "Edit" in My reports. After a reload there's nothing to edit, so go back.
+        if (!pendingEdit || pendingEdit.id !== editId) { location.hash = "#/profile"; return; }
+        endSession();
+        session = newSession(form);
+        session.editId = editId;
+        Object.assign(session.values, pendingEdit.fields);
+        session.voice.transcript = pendingEdit.transcript || "";
+        pendingEdit = null;
+      } else if (!session || session.form !== form || session.submitted || session.editId) {
         endSession();
         session = newSession(form);
       }
@@ -258,7 +270,7 @@
 
   /* ---------------- Profile & my reports ---------------- */
 
-  // Reports submitted in this browser. INTEGRATION POINT: replace with the backend.
+  // Reports that couldn't be sent (offline) stay in this browser. Sent ones live in the database.
   function loadLocalReports() {
     try { return JSON.parse(store.get("myReports") || "[]"); } catch { return []; }
   }
@@ -269,25 +281,41 @@
     store.set("myReports", JSON.stringify(loadLocalReports().filter((r) => r.localId !== localId)));
   }
 
-  const profileState = { filter: "all", expanded: new Set() };
+  const profileState = { filter: "all", expanded: new Set(), reports: null, error: false };
+  let pendingEdit = null; // the report opened with "Edit", picked up by route()
 
-  /** Local + sample reports in one shape, newest first. */
+  // How a status is shown (pill colour) and counted (Resolved / Open).
+  const RESOLVED = ["Closed", "Completed", "Review complete", "No follow-up needed", "Resolved"];
+  const kindOf = (status) => (status === "Filed" ? "filed" : RESOLVED.includes(status) ? "resolved" : "update");
+
+  /** Load this worker's reports from the database (api/reports.js). Only their own. */
+  async function loadMyReports() {
+    try {
+      const res = await fetch(`/api/reports?reporter=${encodeURIComponent(SAMPLE_PROFILE.name)}`);
+      if (!res.ok) throw new Error(await res.text());
+      profileState.reports = (await res.json()).map((r) => ({
+        key: `db-${r.id}`, id: r.id, recordId: `#${r.id}`, formId: r.form_id, at: new Date(r.created_at),
+        status: r.status, kind: kindOf(r.status), editable: r.status === "Submitted",
+        fields: r.fields, attachments: r.attachments, transcript: r.transcript, photoUrls: r.photoUrls || [],
+      }));
+      profileState.error = false;
+    } catch (e) {
+      console.error("[form-filler] loading reports failed", e);
+      profileState.reports = [];
+      profileState.error = true;
+    }
+    if (location.hash === "#/profile") renderProfile();
+  }
+
+  /** Database reports + unsent ones on this device, newest first. */
   function allReports() {
-    const local = loadLocalReports().map((r) => ({
-      key: r.localId, localId: r.localId, formId: r.formId, at: new Date(r.at), fields: r.fields, attachments: r.attachments,
-      ...(r.recordId
-        ? { recordId: `#${r.recordId}`, status: r.status || "Submitted", kind: "filed" }
-        : { recordId: t("Not sent"), status: "Saved on device", kind: "local" }),
+    const local = loadLocalReports().filter((r) => !r.recordId).map((r) => ({
+      key: r.localId, localId: r.localId, recordId: t("Not sent"), formId: r.formId, at: new Date(r.at),
+      status: "Saved on device", kind: "local", fields: r.fields, attachments: r.attachments,
     }));
-    const sample = SAMPLE_REPORTS.map((r) => {
-      const form = FORMS.find((f) => f.id === r.formId);
-      const at = r.at ? new Date(r.at) : new Date(Date.now() - r.daysAgo * 86400e3);
-      // Fill the form's report-date field from the sample's age.
-      const dateField = form?.fields.find((f) => f.defaultToday);
-      const fields = dateField ? { [dateField.name]: localISO(at), ...r.fields } : r.fields;
-      return { ...r, key: r.recordId, at, fields };
-    });
-    return [...local, ...sample].filter((r) => FORMS.some((f) => f.id === r.formId)).sort((a, b) => b.at - a.at);
+    return [...local, ...(profileState.reports || [])]
+      .filter((r) => FORMS.some((f) => f.id === r.formId))
+      .sort((a, b) => b.at - a.at);
   }
 
   function reportSummary(form, fields) {
@@ -346,11 +374,24 @@
               ${rows}
               ${att ? `<tr><th scope="row">${esc(t("Attachments"))}</th><td>${esc(att)}</td></tr>` : ""}
             </tbody></table>
+            ${r.photoUrls?.length ? `
+              <div class="thumbs">
+                ${r.photoUrls.map((u, i) => `
+                  <a class="thumb" href="${esc(u)}" target="_blank" rel="noopener">
+                    <img src="${esc(u)}" alt="${esc(t("Photo {n}", { n: i + 1 }))}" loading="lazy">
+                  </a>`).join("")}
+              </div>` : ""}
             ${r.kind === "local" ? `
               <div class="report-actions">
                 <p class="muted">${esc(t("Saved on this device only. It couldn't be sent."))}</p>
                 <button type="button" class="btn btn-sm" data-remove-report="${esc(r.localId)}">${icon("trash")} ${esc(t("Remove"))}</button>
-              </div>` : ""}
+              </div>` : r.editable ? `
+              <div class="report-actions">
+                <p class="muted">${esc(t("You can change or delete this until the safety team picks it up."))}</p>
+                <button type="button" class="btn btn-sm" data-edit-report="${r.id}">${icon("pencil")} ${esc(t("Edit"))}</button>
+                <button type="button" class="btn btn-sm" data-delete-report="${r.id}">${icon("trash")} ${esc(t("Delete"))}</button>
+              </div>` : `
+              <p class="muted report-lock">${esc(t("Locked: the safety team has picked this up."))}</p>`}
           </div>
         </li>`;
     };
@@ -375,7 +416,9 @@
         ${filters.map((f) => `<button type="button" class="chip" data-rfilter="${f.id}" aria-pressed="${f.id === profileState.filter}">${esc(t(f.label))} <span class="muted chip-num">${f.count}</span></button>`).join("")}
       </div>
 
-      ${shown.length ? `<ul class="notif-list">${shown.map(item).join("")}</ul>` : `
+      ${profileState.error ? `<p class="muted">${esc(t("Couldn't load your reports from the server."))}</p>` : ""}
+      ${profileState.reports === null ? `<p class="muted">${esc(t("Loading your reports…"))}</p>`
+        : shown.length ? `<ul class="notif-list">${shown.map(item).join("")}</ul>` : `
         <div class="empty">
           <span class="form-icon" data-accent="blue">${icon("clipboard")}</span>
           <h2>${esc(t("No reports yet"))}</h2>
@@ -392,6 +435,18 @@
       if (profileState.expanded.has(k)) profileState.expanded.delete(k); else profileState.expanded.add(k);
       renderProfile();
       app.querySelector(`[data-report="${CSS.escape(k)}"]`)?.focus();
+    }));
+    app.querySelectorAll("[data-edit-report]").forEach((b) => b.addEventListener("click", () => {
+      pendingEdit = profileState.reports.find((r) => r.id === Number(b.dataset.editReport));
+      location.hash = `#/form/${pendingEdit.formId}?edit=${pendingEdit.id}`;
+    }));
+    app.querySelectorAll("[data-delete-report]").forEach((b) => b.addEventListener("click", async () => {
+      if (!confirm(t("Delete this report? This can't be undone."))) return;
+      b.disabled = true;
+      const res = await fetch(`/api/reports?id=${b.dataset.deleteReport}&reporter=${encodeURIComponent(SAMPLE_PROFILE.name)}`, { method: "DELETE" })
+        .catch(() => null);
+      toast(t(res?.ok ? "Report deleted." : "Couldn't delete it. The safety team may have already picked it up."));
+      loadMyReports();
     }));
     app.querySelectorAll("[data-remove-report]").forEach((b) => b.addEventListener("click", () => {
       if (!confirm(t("Remove this report from this device?"))) return;
@@ -519,7 +574,7 @@
       <div class="submit-bar">
         <div class="inner">
           <span class="status" id="submitStatus"></span>
-          <button type="button" class="btn btn-primary" id="submitBtn">${esc(t("Review & submit"))}</button>
+          <button type="button" class="btn btn-primary" id="submitBtn">${esc(t(session.editId ? "Save changes" : "Review & submit"))}</button>
         </div>
       </div>`;
 
@@ -760,6 +815,7 @@
     const files = [...(fileList || [])].filter((f) => f.type.startsWith("image/"));
     if (!files.length) return;
     for (const file of files) session.photos.push({ id: ++photoSeq, file, url: URL.createObjectURL(file) });
+    if (session.photos.length > MAX_PHOTOS) toast(t("Only the first 5 photos are saved with the report."));
     session.dirty = true;
     renderThumbs();
   }
@@ -995,17 +1051,40 @@
     if (form.finalize) record = form.finalize(record);
     const attachments = { photos: session.photos.length, voiceClips: session.voice.clips.length, description: !!session.voice.transcript.trim() };
 
-    // Send to the database (api/submit.js → Supabase). If that fails, keep it on this device.
     const btn = app.querySelector("#submitBtn");
     session.sending = true;
     btn.disabled = true;
     btn.textContent = t("Sending…");
+
+    if (session.editId) {
+      // Editing a report that's still "Submitted" (api/reports.js checks that it's this worker's).
+      const res = await fetch(`/api/reports?id=${session.editId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reporter: SAMPLE_PROFILE.name, fields: record, transcript: session.voice.transcript.trim() }),
+      }).catch(() => null);
+      session.sending = false;
+      if (!res?.ok) {
+        btn.disabled = false;
+        btn.textContent = t("Save changes");
+        toast(t("Couldn't save changes. The safety team may have already picked this up."));
+        return;
+      }
+      session.submitted = true;
+      session.record = record;
+      renderDone(record, true, true);
+      return;
+    }
+
+    // Send to the database (api/submit.js → Supabase). If that fails, keep it on this device.
+    // Photos are shrunk first and saved with the report; voice recordings aren't (the transcript is).
+    const photos = (await Promise.all(session.photos.slice(0, MAX_PHOTOS).map((p) => shrinkPhoto(p.file).catch(() => null)))).filter(Boolean);
     let saved = null;
     try {
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId: form.id, fields: record, attachments, transcript: session.voice.transcript.trim(), reporter: SAMPLE_PROFILE.name }),
+        body: JSON.stringify({ formId: form.id, fields: record, attachments, photos, transcript: session.voice.transcript.trim(), reporter: SAMPLE_PROFILE.name }),
       });
       if (!res.ok) throw new Error(await res.text());
       saved = await res.json();
@@ -1014,17 +1093,23 @@
     }
     session.sending = false;
 
-    saveLocalReport({
-      localId: `local-${Date.now()}`,
-      formId: form.id,
-      at: saved?.createdAt || new Date().toISOString(),
-      fields: record,
-      attachments,
-      ...(saved && { recordId: String(saved.id), status: saved.status }),
-    });
+    if (!saved) saveLocalReport({ localId: `local-${Date.now()}`, formId: form.id, at: new Date().toISOString(), fields: record, attachments });
     session.submitted = true;
     session.record = record;
-    renderDone(record, !!saved);
+    renderDone(record, !!saved, false, saved && saved.photosSaved < session.photos.length);
+  }
+
+  const MAX_PHOTOS = 5;
+
+  /** Resize a photo to at most `max` px on its long side, as base64 JPEG (keeps uploads small). */
+  async function shrinkPhoto(file, max = 1280) {
+    const img = await createImageBitmap(file);
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.75).split(",")[1];
   }
 
   function displayValue(f, val) {
@@ -1045,7 +1130,7 @@
     ].filter(Boolean).join(", ");
   }
 
-  function renderDone(record, sent) {
+  function renderDone(record, sent, edited, photosMissing) {
     const { form } = session;
     toastEl.classList.remove("show");
     const rows = form.fields
@@ -1056,9 +1141,11 @@
     app.innerHTML = `
       <section class="done">
         <div class="tick">${icon("check")}</div>
-        <h1>${esc(t(sent ? "{form} sent" : "{form} saved", { form: t(form.title) }))}</h1>
-        <p>${esc(t(sent ? "The safety team can see it now. You can follow its status in My reports."
+        <h1>${esc(t(edited ? "{form} updated" : sent ? "{form} sent" : "{form} saved", { form: t(form.title) }))}</h1>
+        <p>${esc(t(edited ? "Your changes are saved. You can follow its status in My reports."
+          : sent ? "The safety team can see it now. You can follow its status in My reports."
           : "Couldn't reach the server, so it's saved on this device only. Try again when you're back online."))}</p>
+        ${photosMissing ? `<p class="muted">${esc(t("Some photos couldn't be saved. Up to 5 photos are kept with a report."))}</p>` : ""}
         <p><a href="#/profile">${esc(t("View in My reports"))}</a></p>
       </section>
       <section class="panel">
