@@ -1,2 +1,8 @@
-streamlit==1.50.0
+# Streamlit Community Cloud builds on a recent Python (3.14 at the time of writing).
+# Altair 5 (the charting library behind st.bar_chart) crashes on Python 3.14, and
+# Streamlit 1.50 doesn't allow Altair 6, so newer Pythons get the newer pair.
+# Older local Pythons (e.g. the 3.9 .venv) keep the versions that support them.
+streamlit==1.67.0; python_version >= "3.11"
+altair==6.3.0; python_version >= "3.11"
+streamlit==1.50.0; python_version < "3.11"
 pandas==2.3.3
