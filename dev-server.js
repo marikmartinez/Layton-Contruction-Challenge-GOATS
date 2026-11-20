@@ -9,8 +9,9 @@ import submitReport from "./api/submit.js";
 import reports from "./api/reports.js";
 import dashboard from "./api/dashboard.js";
 import assistant from "./api/assistant.js";
+import leader from "./api/leader.js";
 
-const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport, "/api/reports": reports, "/api/dashboard": dashboard, "/api/assistant": assistant };
+const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport, "/api/reports": reports, "/api/dashboard": dashboard, "/api/assistant": assistant, "/api/leader": leader };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 

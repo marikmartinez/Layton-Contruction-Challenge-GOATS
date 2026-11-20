@@ -134,6 +134,22 @@ footer ul{margin:6px 0 0;padding-left:18px}
 .review{display:flex;gap:8px;align-items:center;font-size:13px}
 .review input{width:18px;height:18px;accent-color:var(--teal)}
 .mini{font-size:12px;color:var(--dim)}
+
+/* Live worker reports (moved from Hazard Intelligence) */
+.lv-login{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lv-login input,.lv-res input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px;color:inherit}
+.lv-tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:10px}
+.lv-tbl th{text-align:left;color:var(--sub);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+.lv-tbl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.lv-tbl tr.row{cursor:pointer}.lv-tbl tr.row:hover td{background:var(--raise)}
+.lv-tbl tr.sel td{background:var(--raise)}
+.lv-det{background:var(--raise);border-radius:10px;padding:12px 14px;margin-top:10px;display:flex;gap:14px;flex-wrap:wrap}
+.lv-det img{max-width:220px;border-radius:8px}
+.lv-res{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.lv-res input{flex:1;min-width:140px}
+.chip.red{color:#FF8A80;border-color:#8C3B36}
+.chip.amber{color:#FFC46B;border-color:#7A5A22}
+.lv-msg{font-size:13px;color:var(--sub);margin-top:8px}
 </style>
 </head>
 <body>
@@ -141,7 +157,7 @@ footer ul{margin:6px 0 0;padding-left:18px}
   <div class="brand">
     <h1>Layton Safety Assistant</h1>
     <p>Points this week's Focus Walk and PTPs at the hazards the data says are being missed. Data as of <span id="asof"></span>.</p>
-    <p style="margin-top:4px;font-size:13px"><a href="/">📱 Worker App</a> · <a href="https://layton-contruction-challenge-goats-hwxjjx7md4pas4wbprcrev.streamlit.app/" target="_blank" rel="noopener">⚠️ Hazard Intelligence</a></p>
+    <p style="margin-top:4px;font-size:13px"><a href="/">📱 Worker App</a> · <a href="#live">📥 Worker reports</a></p>
   </div>
   <div class="controls">
     <div class="seg" role="group" aria-label="View as">
@@ -301,6 +317,106 @@ function backtestHTML(){
     <p class="note">Mixed result on ${t.rec_total+tr.rec_total} serious injuries. Adding overdue issues to the score did not improve it. We use the list to decide where to look first, not to predict who gets hurt.</p>
   </section>`;
 }
+
+/* ---------- Live worker reports (from the worker app's database) ---------- */
+const RESOLVED_ST = ['Closed','Completed','Review complete','No follow-up needed','Resolved'];
+const FORM_NAME = {'issue':'Safety issue','good-catch':'Good Catch','incident':'Incident'};
+let live = null, liveErr = '', liveSel = null, liveMsg = '', liveShowAll = false;
+let liveTok = ''; try{ liveTok = sessionStorage.getItem('lsa-tok')||''; }catch(e){}
+function lvField(r, ...names){ const f = r.fields||{}; for(const n of names){ if(f[n]) return String(f[n]); } return ''; }
+function lvRow(r){
+  const sev = (r.severity || lvField(r,'SEVERITY','POTENTIAL_SEVERITY')).trim();
+  const sevT = sev ? sev[0].toUpperCase()+sev.slice(1).toLowerCase() : '';
+  const open = !RESOLVED_ST.includes(r.status);
+  const prio = !open ? 'Done' : sevT==='Critical' ? 'Urgent' : (sevT==='High' || r.form_id==='incident') ? 'High' : 'Routine';
+  const action = prio==='Urgent' ? 'Notify the site safety lead now; verify the condition and immediate controls.'
+    : prio==='High' ? 'Assign a safety lead to review and verify corrective actions.'
+    : 'Review the report and decide whether follow-up is needed.';
+  return { id:r.id, at:r.created_at, form:FORM_NAME[r.form_id]||r.form_id, reporter:r.reporter||'',
+    job:r.job_id || lvField(r,'JOB_ID'), cat:r.hazard_category || lvField(r,'HAZARD_CATEGORY','OSHA_HAZARD_CATEGORY'),
+    sev:sevT, status:r.status, open, prio, action, photo:r.firstPhoto,
+    desc: lvField(r,'GOOD_CATCH_DESCRIPTION','ISSUE_DESCRIPTION','INCIDENT_DESCRIPTION') || r.observed_condition || '' };
+}
+async function liveLoad(){
+  if(!liveTok) return;
+  liveErr = '';
+  try{
+    const r = await fetch('/api/leader', {headers:{'x-dashboard-token':liveTok}});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ liveErr = j.error||('Error '+r.status); if(r.status===401){ liveTok=''; try{sessionStorage.removeItem('lsa-tok');}catch(e){} } live=null; }
+    else live = j.map(lvRow);
+  }catch(e){ liveErr = 'Could not reach the database.'; live = null; }
+  render();
+}
+function liveHTML(){
+  let h = `<section class="card" id="live"><h2>Worker reports: review &amp; resolve</h2>
+    <p class="lede">Live from the worker app. Resolving a report here updates the worker's status screen.</p>`;
+  if(!liveTok){
+    return h + `<form class="lv-login" id="lvlogin"><input type="password" id="lvtok" placeholder="Leadership passcode" autocomplete="off"><button class="btn">Open</button></form>
+      ${liveErr?`<p class="lv-msg">${esc(liveErr)}</p>`:''}</section>`;
+  }
+  if(!live) return h + `<p class="lv-msg">${liveErr?esc(liveErr):'Loading…'}</p></section>`;
+  let rows = live;
+  if(role==='sup') rows = rows.filter(r=>r.job===job);
+  const open = rows.filter(r=>r.open), order = {Urgent:0, High:1, Routine:2, Done:3};
+  const shown = (liveShowAll ? rows : open).slice().sort((a,b)=>order[a.prio]-order[b.prio] || String(b.at).localeCompare(String(a.at)));
+  const weekAgo = Date.now()-7*864e5;
+  h += `<div class="tiles">
+    ${tile(open.length,'Open worker reports', open.length?'amber':'')}
+    ${tile(open.filter(r=>r.prio==='Urgent').length,'Urgent (Critical severity)', open.some(r=>r.prio==='Urgent')?'red':'')}
+    ${tile(rows.filter(r=>r.status==='Submitted').length,'Not picked up yet')}
+    ${tile(rows.filter(r=>new Date(r.at)>weekAgo).length,'New in the last 7 days','teal')}
+  </div>
+  <div class="filters" style="margin-top:12px"><div class="seg">
+    <button type="button" data-lv="open" aria-pressed="${!liveShowAll}">Open</button>
+    <button type="button" data-lv="all" aria-pressed="${liveShowAll}">All</button></div>
+    <button type="button" class="btn" id="lvref" style="margin-left:8px">Refresh</button></div>`;
+  if(liveMsg) h += `<p class="lv-msg">${esc(liveMsg)}</p>`;
+  if(!shown.length) return h + `<p class="lv-msg">No ${liveShowAll?'':'open '}reports.</p></section>`;
+  h += `<table class="lv-tbl"><thead><tr><th>#</th><th>Priority</th><th>Form</th><th>Job</th><th>Hazard</th><th>Status</th><th>Submitted</th></tr></thead><tbody>`;
+  for(const r of shown){
+    const pc = r.prio==='Urgent'?'red':r.prio==='High'?'amber':'';
+    h += `<tr class="row${liveSel===r.id?' sel':''}" data-lvid="${r.id}"><td>${r.id}</td><td><span class="chip ${pc}">${r.prio}</span></td><td>${esc(r.form)}</td><td>${esc(r.job||'—')}</td><td>${esc(r.cat||'—')}${r.sev?` · ${esc(r.sev)}`:''}</td><td>${esc(r.status)}</td><td>${esc(String(r.at).slice(0,10))}</td></tr>`;
+    if(liveSel===r.id){
+      h += `<tr><td colspan="7"><div class="lv-det"><div style="flex:1;min-width:220px">
+        <b>#${r.id} · ${esc(r.cat||r.form)} · ${esc(r.job||'no job')}</b>
+        <p style="margin:6px 0">${esc(r.desc||'(no description)')}</p>
+        <p class="lv-msg">Reported by ${esc(r.reporter||'unknown')}</p>
+        ${r.open?`<p class="lv-msg">👉 ${esc(r.action)}</p>
+        <form class="lv-res" data-resid="${r.id}"><input name="by" placeholder="Resolved by" required><input name="note" placeholder="What was done?" required><button class="btn">✅ Resolve</button></form>`:''}
+        </div>${r.photo?`<img src="${esc(r.photo)}" alt="Report photo">`:''}</div></td></tr>`;
+    }
+  }
+  return h + `</tbody></table></section>`;
+}
+function liveWire(){
+  const lf = $('#lvlogin');
+  if(lf) lf.onsubmit = (ev)=>{ ev.preventDefault(); liveTok = $('#lvtok').value.trim(); if(!liveTok) return; try{sessionStorage.setItem('lsa-tok',liveTok);}catch(e){} live=null; render(); liveLoad(); };
+  document.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{ liveShowAll = b.dataset.lv==='all'; render(); });
+  const rf = $('#lvref'); if(rf) rf.onclick = ()=>{ liveMsg=''; liveLoad(); };
+  document.querySelectorAll('tr[data-lvid]').forEach(tr=>tr.onclick=()=>{ const id=Number(tr.dataset.lvid); liveSel = liveSel===id?null:id; render(); });
+  document.querySelectorAll('form[data-resid]').forEach(f=>{
+    f.onclick = (ev)=>ev.stopPropagation();
+    f.onsubmit = async (ev)=>{
+      ev.preventDefault(); const id = Number(f.dataset.resid), by = f.by.value.trim(), note = f.note.value.trim();
+      if(!by||!note) return; f.querySelector('button').disabled = true;
+      try{
+        const r = await fetch('/api/leader', {method:'POST', headers:{'Content-Type':'application/json','x-dashboard-token':liveTok}, body:JSON.stringify({id,by,note})});
+        const j = await r.json().catch(()=>({}));
+        liveMsg = r.ok ? `Report #${id} resolved.` : (j.error||'Resolve failed.');
+        if(r.ok) liveSel = null;
+      }catch(e){ liveMsg = 'Resolve failed.'; }
+      await liveLoad();
+    };
+  });
+}
+function liveContext(){
+  if(!live) return '';
+  const open = live.filter(r=>r.open), by = {};
+  open.forEach(r=>{ const k=r.cat||'Uncategorized'; by[k]=(by[k]||0)+1; });
+  return `\nLIVE WORKER REPORTS (from the worker app, today): ${live.length} total, ${open.length} open, ${open.filter(r=>r.prio==='Urgent').length} urgent. Open by hazard: ${Object.entries(by).map(([k,v])=>k+' '+v).join(', ')||'none'}.\n`
+    + open.slice(0,25).map(r=>`#${r.id} ${r.form} ${r.job||'no job'} ${r.cat||''} ${r.sev||''} ${r.status}: ${r.desc.slice(0,140)}`).join('\n');
+}
 function render(){
   document.querySelectorAll('.seg[aria-label="View as"] button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.role===role));
   jobsel.hidden = role!=='sup';
@@ -356,7 +472,8 @@ function render(){
     h += `<section class="card"><h2>Your week: Focus Walk theme and PTP items</h2><p class="lede">Use these in the Focus Walk and daily PTPs you already run.</p>${focusCard(j)}</section>`;
     h += playbookHTML();
   }
-  $('#work').innerHTML = h; wire();
+  h = liveHTML() + h;
+  $('#work').innerHTML = h; wire(); liveWire();
 }
 function wire(){
   document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{kindF=b.dataset.kind;render();});
@@ -438,7 +555,7 @@ function ctx(){
   const gap=D.hazard_gap.map(h=>`${h.family}: ${Math.round(h.serious*100)}% of serious injuries, ${Math.round(h.attention*100)}% of safety attention, ${h.lta} lost-time, issue severity label ${h.label}`).join('\n');
   const al=D.alerts.map(a=>`[${a.kind}] ${a.job}: ${a.signal}. ${a.detail} Action: ${a.action} (${a.owner}, due ${a.due})`).join('\n');
   return `PORTFOLIO (Jan 2024 to Sep 2026, 40 projects): serious injury rate ${k.rate} per 200,000 hours, lost-time rate ${k.lta_rate}, ${k.recordables} serious injuries, ${k.ltas} lost-time injuries, daily PTPs done ${Math.round(k.ptp*100)}%, Focus Walks done ${Math.round(k.walk*100)}%, ${Math.round(k.fw_nowork*100)}% of Focus Walks filed on days with no work, ${k.gc_open} near-miss follow-ups open (${k.gc_open_crit} Critical), ${k.open_issues_completed} issues still open on finished projects. Injury rate in a project's first 90 days is about 2x the later rate across the portfolio (not true on every job). Only ${k.funnel_above} of 40 projects (${k.funnel_jobs}) sit above the normal range for their hours; ranking the rest is noise. Checklist completion did not predict injuries.
-HAZARDS:\n${gap}\nACTIVE JOBS:\n${jobs}\nALERTS:\n${al}`;
+HAZARDS:\n${gap}\nACTIVE JOBS:\n${jobs}\nALERTS:\n${al}${liveContext()}`;
 }
 const SUGG=['Which jobs have the most Critical near-misses open?','Why is lifting a big deal?','What should JOB-001 focus on this week?','Is the first-90-days risk true for every job?'];
 $('#sugg').innerHTML=SUGG.map(t=>`<button type="button">${t}</button>`).join('');
@@ -466,6 +583,7 @@ $('#askf').onsubmit=(ev)=>{ ev.preventDefault(); ask(); };
 qbox.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&!ev.shiftKey){ ev.preventDefault(); ask(); } });
 
 // AI calls go to the team's /api/assistant (OpenAI) instead of the claude.ai artifact runtime.
+liveLoad();
 sample = async (input) => {
   const messages = typeof input === 'string' ? [{role:'user', content:input}] : input;
   const r = await fetch('/api/assistant', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({messages})});

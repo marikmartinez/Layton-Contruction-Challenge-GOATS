@@ -33,10 +33,8 @@ BASE_DIR = Path(__file__).resolve().parent
 # The worker app (Vercel) that feeds the Live Worker Reports tab.
 # Leave empty ("") to hide the button.
 WORKER_APP_URL = "https://layton-worker-app.vercel.app/"
-# Leadership Safety Assistant (Vibha), served by the worker app on Vercel.
-LEADERSHIP_URL = "https://layton-worker-app.vercel.app/leadership/index.html"
 
-title_col, link_col, lead_col = st.columns([4, 1, 1], vertical_alignment="bottom")
+title_col, link_col = st.columns([5, 1], vertical_alignment="bottom")
 
 title_col.title("⚠️ Hazard Intelligence & Escalation Engine")
 
@@ -45,14 +43,6 @@ if WORKER_APP_URL:
         "📱 Open Worker App",
         WORKER_APP_URL,
         help="The field app workers use to submit reports",
-        width="stretch",
-    )
-
-if LEADERSHIP_URL:
-    lead_col.link_button(
-        "📊 Leadership Assistant",
-        LEADERSHIP_URL,
-        help="Where to look this week: Focus Walk themes, PTP drafts, Ask the data",
         width="stretch",
     )
 
