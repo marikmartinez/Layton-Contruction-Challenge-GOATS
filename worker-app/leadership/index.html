@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layton Safety Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* One visual world: night-shift navy to match the Tableau dashboards.
+   Teal = safety attention, red = serious injury / critical, amber = high, yellow = medium.
+   Layout: header with role switch, work column (summary, focus walks, playbook), sticky assistant column. */
+:root{
+  --bg:#0B1220; --card:#151E33; --raise:#1B2642; --line:#26324F;
+  --text:#E8EDF5; --sub:#9AA8C2; --dim:#6E7C99;
+  --teal:#76B7B2; --red:#E15759; --amber:#F28E2B; --yellow:#EDC948; --ok:#59A14F;
+  --display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.5}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0E172A,var(--bg))}
+.brand h1{font-size:22px;font-weight:800}
+.brand p{margin:2px 0 0;color:var(--sub);font-size:13px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:7px;cursor:pointer;color:var(--sub);font-weight:600;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--raise);color:var(--text);box-shadow:inset 0 0 0 1px var(--teal)}
+select{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer}
+main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;padding:20px 24px 40px;align-items:start}
+@media (max-width:1050px){main{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-size:17px;font-weight:700}
+.card .lede{color:var(--sub);font-size:13.5px;margin:4px 0 14px;max-width:70ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
+.tile{background:var(--raise);border-radius:10px;padding:12px 14px;border-left:3px solid var(--line)}
+.tile .v{font-family:var(--display);font-size:28px;font-weight:800;line-height:1.1}
+.tile .k{color:var(--sub);font-size:12.5px;margin-top:4px}
+.tile.red{border-left-color:var(--red)} .tile.teal{border-left-color:var(--teal)} .tile.amber{border-left-color:var(--amber)}
+.story{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:14px}
+.story div{background:var(--raise);border-radius:10px;padding:12px 14px;font-size:13.5px}
+.story b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--teal);margin-bottom:4px}
+.gap{display:grid;gap:7px;margin-top:8px}
+.gaprow{display:grid;grid-template-columns:170px 1fr 40px;gap:10px;align-items:center;font-size:13px}
+.gaprow .bars{display:grid;gap:3px}
+.bar{height:8px;border-radius:4px}
+.bar.a{background:var(--teal)} .bar.s{background:var(--red)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--sub);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.fw{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.fwc{background:var(--raise);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.fwc .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.fwc .job{font-weight:600;font-size:14px}
+.fwc .id{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.chip.hz{background:rgba(118,183,178,.14);border-color:rgba(118,183,178,.5);color:var(--teal)}
+.chip.ev{color:#B9C7F0;border-color:#4A5B8C}
+.chip.pr{color:var(--yellow);border-color:#7A6A2C}
+.chip.rc{color:var(--sub);border-color:var(--line);background:var(--bg)}
+.fwc ul{margin:0;padding-left:16px;color:var(--sub);font-size:12.5px}
+.linkbtn{align-self:flex-start;background:none;border:0;color:var(--teal);cursor:pointer;padding:0;font-size:12.5px;font-weight:600}
+.linkbtn:hover{text-decoration:underline}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.filters .seg button{padding:5px 10px;font-size:13px}
+.count{color:var(--sub);font-size:12.5px;margin-left:auto}
+.alerts{display:flex;flex-direction:column;gap:8px}
+.alert{display:grid;grid-template-columns:4px 1fr auto;gap:12px;background:var(--raise);border-radius:10px;overflow:hidden}
+.alert .stripe{background:var(--amber)}
+.alert.Medium .stripe{background:var(--dim)}
+.alert.Critical .stripe{background:var(--red)}
+.alert .body{padding:10px 0;display:flex;flex-direction:column;gap:3px;min-width:0}
+.alert .head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.alert .sig{font-weight:600;font-size:14px}
+.alert .det{color:var(--sub);font-size:13px}
+.alert .act{font-size:13px}
+.alert .meta{font-size:12px;color:var(--dim);font-family:var(--mono)}
+.alert .done{display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:13px;color:var(--sub);cursor:pointer;white-space:nowrap}
+.alert input{width:18px;height:18px;accent-color:var(--teal);cursor:pointer}
+.alert.isdone{opacity:.55}
+.alert.isdone .sig{text-decoration:line-through}
+.note{font-size:12px;color:var(--dim);margin-top:10px}
+.bt{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.bt div{background:var(--raise);border-radius:10px;padding:12px 14px;font-size:13px}
+.bt .big{font-family:var(--display);font-size:22px;font-weight:800}
+/* assistant */
+.chat{position:sticky;top:16px;display:flex;flex-direction:column;height:calc(100vh - 120px);min-height:520px;padding:0}
+@media (max-width:1050px){.chat{position:static;height:640px}}
+.chat .ch{padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+.chat .ch p{margin:4px 0 0;color:var(--sub);font-size:12.5px}
+.msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:92%;padding:9px 12px;border-radius:12px;font-size:14px;white-space:pre-wrap;word-wrap:break-word}
+.m.u{align-self:flex-end;background:#25406A}
+.m.a{align-self:flex-start;background:var(--raise)}
+.m.a.err{border:1px solid var(--red)}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 10px}
+.sugg button{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12.5px;cursor:pointer;color:var(--sub);text-align:left}
+.sugg button:hover{color:var(--text);border-color:var(--teal)}
+form.ask{display:flex;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--line)}
+form.ask textarea{flex:1;resize:none;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;height:44px;font-size:14px}
+form.ask button{background:var(--teal);color:#08201E;border:0;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
+form.ask button:disabled{opacity:.5;cursor:default}
+.off{color:var(--sub);font-size:13px;padding:18px}
+.tabs{display:flex;gap:4px;padding:10px 18px 0}
+.tabs button{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--sub);border-radius:9px 9px 0 0;padding:8px;font-weight:700;cursor:pointer;font-size:13.5px}
+.tabs button[aria-selected="true"]{background:var(--raise);color:var(--text);border-color:var(--teal)}
+.pane[hidden]{display:none!important}
+.pane{display:flex;flex-direction:column;flex:1;min-height:0}
+footer{padding:0 24px 30px;color:var(--dim);font-size:12px}
+footer ul{margin:6px 0 0;padding-left:18px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.why{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}
+.why li{font-size:12.5px;color:var(--sub)}
+.why li .chip{margin-right:6px}
+.why li .chip{font-size:10.5px;padding:1px 6px}
+.walk{font-size:12.5px;border-left:2px solid var(--teal);padding-left:8px}
+.ptp{display:grid;gap:6px;margin-top:2px}
+.ptp div{background:var(--bg);border-radius:8px;padding:7px 9px;font-size:12.5px}
+.ptp b{color:var(--text);display:block;font-size:12px}
+.drafter{display:flex;flex-direction:column;gap:10px;padding:14px 18px;flex:1;overflow-y:auto}
+.drafter .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.drafter textarea{width:100%;min-height:230px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.55;resize:vertical}
+.btn{background:var(--teal);color:#08201E;border:0;border-radius:9px;padding:8px 14px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+.status{font-size:12.5px;color:var(--sub)}
+.review{display:flex;gap:8px;align-items:center;font-size:13px}
+.review input{width:18px;height:18px;accent-color:var(--teal)}
+.mini{font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1>Layton Safety Assistant</h1>
+    <p>Points this week's Focus Walk and PTPs at the hazards the data says are being missed. Data as of <span id="asof"></span>.</p>
+    <p style="margin-top:4px;font-size:13px"><a href="/">📱 Worker App</a> · <a href="https://layton-contruction-challenge-goats-hwxjjx7md4pas4wbprcrev.streamlit.app/" target="_blank" rel="noopener">⚠️ Hazard Intelligence</a></p>
+  </div>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="View as">
+      <button type="button" id="r-exec" data-role="exec">Executive</button>
+      <button type="button" id="r-dir" data-role="dir">Safety Director</button>
+      <button type="button" id="r-sup" data-role="sup">Superintendent</button>
+    </div>
+    <select id="jobsel" aria-label="Choose your job" hidden></select>
+  </div>
+</header>
+
+<main>
+  <div class="col" id="work"></div>
+  <aside class="card chat" aria-label="AI assistant">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="t-draft" aria-selected="true" aria-controls="p-draft">Draft PTP talk</button>
+      <button type="button" role="tab" id="t-ask" aria-selected="false" aria-controls="p-ask">Ask the data</button>
+    </div>
+    <div class="pane" id="p-draft" role="tabpanel">
+    <div class="ch">
+      <h2>Draft this week's PTP talk</h2>
+      <p>AI turns a job's two PTP items into a short talk a superintendent can read out. A person reviews it before use.</p>
+    </div>
+    <div class="drafter">
+      <div class="row">
+        <label for="djob" class="mini">Job</label>
+        <select id="djob"></select>
+        <label for="dlang" class="mini">Language</label>
+        <select id="dlang"><option value="English">English</option><option value="Spanish">Español</option></select>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="gen">Draft the talk</button>
+        <button type="button" class="btn ghost" id="shorter">Make it shorter</button>
+        <button type="button" class="btn ghost" id="copy">Copy</button>
+      </div>
+      <span class="status" id="dstatus" aria-live="polite"></span>
+      <label for="draft" class="mini">Talk (edit freely)</label>
+      <textarea id="draft"></textarea>
+      <label class="review" for="reviewed"><input type="checkbox" id="reviewed"> Reviewed by the superintendent before use</label>
+      <p class="mini">The draft uses only this job's items on the left. It does not give new safety advice.</p>
+    </div>
+    </div>
+    <div class="pane" id="p-ask" role="tabpanel" hidden>
+      <div class="ch">
+        <h2>Ask the data</h2>
+        <p>Ask about Layton's safety numbers. Answers come only from this page's data (Jan 2024 to Sep 2026).</p>
+      </div>
+      <div class="msgs" id="msgs" aria-live="polite"></div>
+      <div class="sugg" id="sugg"></div>
+      <form class="ask" id="askf">
+        <label for="q" class="sr" style="position:absolute;left:-9999px">Your question</label>
+        <textarea id="q" placeholder="e.g. Which jobs have the most Critical near-misses open?"></textarea>
+        <button type="submit" id="send">Ask</button>
+      </form>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <b>How to read this.</b> <span class="chip ev">Evidence-based</span> signals come from injury patterns in the data. <span class="chip pr">Process</span> signals show safety work left unfinished. <span class="chip rc">Records clean-up</span> items are probably paperwork, not hazards, so they never outrank the others.
+  <ul id="limits"></ul>
+</footer>
+
+<script id="data" type="application/json">{"asof": "2026-09-30", "kpis": {"rate": 0.92, "lta_rate": 0.47, "recordables": 47, "ltas": 24, "first_aid": 76, "hours": 10187503, "ptp": 0.873, "walk": 0.832, "fw_nowork": 0.217, "gc_open": 410, "gc_open_crit": 95, "open_issues_completed": 485, "funnel_above": 3, "funnel_jobs": "JOB-001, JOB-008, JOB-010"}, "hazard_gap": [{"family": "Ergonomics & manual lifting", "attention": 0.064, "serious": 0.319, "serious_n": 15, "lta": 0, "pct_serious": 0.6, "label": "Low"}, {"family": "Caught-in / between", "attention": 0.067, "serious": 0.128, "serious_n": 6, "lta": 3, "pct_serious": 0.55, "label": "High"}, {"family": "Falls from height", "attention": 0.276, "serious": 0.298, "serious_n": 14, "lta": 13, "pct_serious": 1.0, "label": "High"}, {"family": "Struck-by", "attention": 0.189, "serious": 0.192, "serious_n": 9, "lta": 6, "pct_serious": 0.53, "label": "High"}, {"family": "Flying debris & hand tools", "attention": 0.0, "serious": 0.0, "serious_n": 0, "lta": 0, "pct_serious": 0.0, "label": "No issue category"}, {"family": "Confined space", "attention": 0.063, "serious": 0.0, "serious_n": 0, "lta": 0, "pct_serious": null, "label": "Critical"}, {"family": "Hot work & fire", "attention": 0.072, "serious": 0.0, "serious_n": 0, "lta": 0, "pct_serious": 0.0, "label": "High"}, {"family": "Electrical", "attention": 0.135, "serious": 0.043, "serious_n": 2, "lta": 2, "pct_serious": 0.18, "label": "Medium"}, {"family": "Slips, trips & housekeeping", "attention": 0.135, "serious": 0.021, "serious_n": 1, "lta": 0, "pct_serious": 0.08, "label": "Medium"}], "first90": {"rate_first90": 4.15, "rate_after": 2.01, "higher_early": 14, "higher_later": 12, "equal_zero": 14}, "lta_repeat": [{"type": "Ladder Fall", "count": 9, "jobs": 9}, {"type": "Falling or Shifting Object", "count": 6, "jobs": 6}, {"type": "Fall from Elevated Work Surface", "count": 4, "jobs": 4}, {"type": "Caught Between Equipment and Fixed Object", "count": 3, "jobs": 3}, {"type": "Contact with Energized Equipment", "count": 2, "jobs": 2}], "backtest": {"evidence": {"train_2024": {"flagged_share_of_hours": 0.31, "rec_in_flagged": 3, "rec_total": 16, "rate_flagged": 0.89, "rate_other": 1.72}, "test_2025_26": {"flagged_share_of_hours": 0.309, "rec_in_flagged": 11, "rec_total": 25, "rate_flagged": 0.95, "rate_other": 0.54}}, "with_overdue": {"train_2024": {"flagged_share_of_hours": 0.367, "rec_in_flagged": 5, "rec_total": 16, "rate_flagged": 1.25, "rate_other": 1.59}, "test_2025_26": {"flagged_share_of_hours": 0.361, "rec_in_flagged": 12, "rec_total": 25, "rate_flagged": 0.88, "rate_other": 0.54}}}, "active_jobs": [{"id": "JOB-001", "name": "Canyon Commercial Project 01", "type": "Commercial", "state": "UT", "start": "2024-01-01", "age_days": 1003, "rec": 6, "lta": 3, "hours": 531697, "overdue_crit": 5, "recent_inc": 0, "recent_rec": 0, "gc_open": 22, "gc_open_crit": 3, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "9 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-002", "name": "Canyon Healthcare Project 02", "type": "Healthcare", "state": "CO", "start": "2024-01-01", "age_days": 1003, "rec": 3, "lta": 1, "hours": 536742, "overdue_crit": 8, "recent_inc": 0, "recent_rec": 0, "gc_open": 24, "gc_open_crit": 5, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "9 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-003", "name": "Canyon Education Project 03", "type": "Education", "state": "AZ", "start": "2024-01-01", "age_days": 1003, "rec": 1, "lta": 1, "hours": 531071, "overdue_crit": 5, "recent_inc": 1, "recent_rec": 0, "gc_open": 24, "gc_open_crit": 5, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "3 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-013", "name": "Summit Infrastructure Project 13", "type": "Infrastructure", "state": "TN", "start": "2024-11-19", "age_days": 680, "rec": 2, "lta": 1, "hours": 373219, "overdue_crit": 3, "recent_inc": 0, "recent_rec": 0, "gc_open": 19, "gc_open_crit": 5, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "4 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-017", "name": "Copper Education Project 17", "type": "Education", "state": "UT", "start": "2024-10-08", "age_days": 722, "rec": 0, "lta": 0, "hours": 403937, "overdue_crit": 4, "recent_inc": 1, "recent_rec": 0, "gc_open": 10, "gc_open_crit": 4, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "3 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-021", "name": "Copper Civic Project 21", "type": "Civic", "state": "TN", "start": "2025-06-04", "age_days": 483, "rec": 1, "lta": 1, "hours": 250331, "overdue_crit": 3, "recent_inc": 0, "recent_rec": 0, "gc_open": 5, "gc_open_crit": 0, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-022", "name": "Copper Commercial Project 22", "type": "Commercial", "state": "NC", "start": "2025-06-27", "age_days": 460, "rec": 0, "lta": 0, "hours": 245737, "overdue_crit": 1, "recent_inc": 0, "recent_rec": 0, "gc_open": 6, "gc_open_crit": 1, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-024", "name": "Copper Education Project 24", "type": "Education", "state": "ID", "start": "2025-07-04", "age_days": 453, "rec": 2, "lta": 0, "hours": 248061, "overdue_crit": 2, "recent_inc": 2, "recent_rec": 0, "gc_open": 3, "gc_open_crit": 2, "focus": "Struck-by", "walk_check": "Check loads are rigged and tag-lined, exclusion zones are marked, and spotters are used for backing equipment.", "focus_why": [["evidence", "1 injury here in this hazard in the last 90 days"], ["process", "2 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Struck-by", "text": "Stay out from under suspended loads and make eye contact with operators before crossing their path.", "title_es": "Enfoque: Golpes por objetos", "text_es": "No se pongan debajo de cargas suspendidas y hagan contacto visual con el operador antes de cruzar su camino."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-025", "name": "Riverview Residential Project 25", "type": "Residential", "state": "UT", "start": "2025-07-09", "age_days": 448, "rec": 2, "lta": 0, "hours": 252226, "overdue_crit": 3, "recent_inc": 0, "recent_rec": 0, "gc_open": 9, "gc_open_crit": 3, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "3 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-027", "name": "Riverview Infrastructure Project 27", "type": "Infrastructure", "state": "AZ", "start": "2025-08-23", "age_days": 403, "rec": 1, "lta": 1, "hours": 202083, "overdue_crit": 2, "recent_inc": 0, "recent_rec": 0, "gc_open": 6, "gc_open_crit": 1, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "2 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-029", "name": "Riverview Commercial Project 29", "type": "Commercial", "state": "TN", "start": "2025-07-21", "age_days": 436, "rec": 1, "lta": 1, "hours": 253117, "overdue_crit": 1, "recent_inc": 2, "recent_rec": 1, "gc_open": 9, "gc_open_crit": 1, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "1 injury here in this hazard in the last 90 days"], ["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "2 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-036", "text": "A ladder fall on Jun 03 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-018: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-036", "text_es": "Una ca\u00edda de escalera el 3 de jun dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-018: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-030", "name": "Riverview Healthcare Project 30", "type": "Healthcare", "state": "NC", "start": "2025-06-26", "age_days": 461, "rec": 2, "lta": 0, "hours": 255376, "overdue_crit": 0, "recent_inc": 0, "recent_rec": 0, "gc_open": 5, "gc_open_crit": 0, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-031", "name": "Riverview Education Project 31", "type": "Education", "state": "GA", "start": "2026-01-23", "age_days": 250, "rec": 1, "lta": 0, "hours": 130864, "overdue_crit": 3, "recent_inc": 0, "recent_rec": 0, "gc_open": 5, "gc_open_crit": 2, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-032", "name": "Riverview Residential Project 32", "type": "Residential", "state": "ID", "start": "2026-01-10", "age_days": 263, "rec": 0, "lta": 0, "hours": 136333, "overdue_crit": 0, "recent_inc": 1, "recent_rec": 0, "gc_open": 4, "gc_open_crit": 1, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-033", "name": "Juniper Industrial Project 33", "type": "Industrial", "state": "UT", "start": "2025-08-25", "age_days": 401, "rec": 0, "lta": 0, "hours": 224853, "overdue_crit": 2, "recent_inc": 0, "recent_rec": 0, "gc_open": 5, "gc_open_crit": 1, "focus": "Falls from height", "walk_check": "Check ladders are the right type, inspected and tied off; edges and openings guarded; podium ladders used where possible.", "focus_why": [["evidence", "falls are the most severe injuries: every fall injury was serious, and they caused 13 of 24 lost-time injuries"], ["process", "2 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Falls from height", "text": "Ladder last: use a lift or podium where you can, three points of contact, and never stand on the top two steps.", "title_es": "Enfoque: Ca\u00eddas de altura", "text_es": "La escalera es la \u00faltima opci\u00f3n: usen un elevador o plataforma cuando puedan, tres puntos de contacto, y nunca se paren en los dos \u00faltimos escalones."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-034", "name": "Juniper Infrastructure Project 34", "type": "Infrastructure", "state": "CO", "start": "2026-02-04", "age_days": 238, "rec": 1, "lta": 1, "hours": 123374, "overdue_crit": 1, "recent_inc": 0, "recent_rec": 0, "gc_open": 2, "gc_open_crit": 0, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-035", "name": "Juniper Civic Project 35", "type": "Civic", "state": "AZ", "start": "2025-09-13", "age_days": 382, "rec": 0, "lta": 0, "hours": 193489, "overdue_crit": 3, "recent_inc": 1, "recent_rec": 0, "gc_open": 5, "gc_open_crit": 2, "focus": "Slips, trips & housekeeping", "walk_check": "Check walkways are clear, debris is removed daily, and cords are routed overhead.", "focus_why": [["evidence", "1 injury here in this hazard in the last 90 days"]], "ptp": [{"title": "Focus: Slips, trips & housekeeping", "text": "Clean as you go: keep walkways clear and pick up offcuts before the end of the shift.", "title_es": "Enfoque: Resbalones, tropiezos y orden", "text_es": "Limpien mientras trabajan: mantengan los pasillos libres y recojan los recortes antes de terminar el turno."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-036", "name": "Juniper Commercial Project 36", "type": "Commercial", "state": "TX", "start": "2025-09-26", "age_days": 369, "rec": 1, "lta": 1, "hours": 198561, "overdue_crit": 0, "recent_inc": 1, "recent_rec": 0, "gc_open": 11, "gc_open_crit": 5, "focus": "Struck-by", "walk_check": "Check loads are rigged and tag-lined, exclusion zones are marked, and spotters are used for backing equipment.", "focus_why": [["process", "8 near-miss follow-up(s) on this hazard still open here"]], "ptp": [{"title": "Focus: Struck-by", "text": "Stay out from under suspended loads and make eye contact with operators before crossing their path.", "title_es": "Enfoque: Golpes por objetos", "text_es": "No se pongan debajo de cargas suspendidas y hagan contacto visual con el operador antes de cruzar su camino."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-037", "name": "Juniper Healthcare Project 37", "type": "Healthcare", "state": "TN", "start": "2025-11-01", "age_days": 333, "rec": 0, "lta": 0, "hours": 172254, "overdue_crit": 1, "recent_inc": 0, "recent_rec": 0, "gc_open": 7, "gc_open_crit": 2, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-038", "name": "Juniper Education Project 38", "type": "Education", "state": "NC", "start": "2025-11-02", "age_days": 332, "rec": 0, "lta": 0, "hours": 190782, "overdue_crit": 0, "recent_inc": 1, "recent_rec": 0, "gc_open": 9, "gc_open_crit": 1, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-039", "name": "Juniper Residential Project 39", "type": "Residential", "state": "GA", "start": "2025-12-15", "age_days": 289, "rec": 1, "lta": 0, "hours": 158775, "overdue_crit": 1, "recent_inc": 0, "recent_rec": 0, "gc_open": 3, "gc_open_crit": 1, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}, {"id": "JOB-040", "name": "Juniper Industrial Project 40", "type": "Industrial", "state": "ID", "start": "2025-12-28", "age_days": 276, "rec": 0, "lta": 0, "hours": 144088, "overdue_crit": 0, "recent_inc": 0, "recent_rec": 0, "gc_open": 3, "gc_open_crit": 0, "focus": "Ergonomics & manual lifting", "walk_check": "Check material is staged where it is used, carts or lift-assists are on site, and team-lift is used for heavy loads.", "focus_why": [["evidence", "across Layton it causes 32% of serious injuries but gets 6% of safety attention"]], "ptp": [{"title": "Focus: Ergonomics & manual lifting", "text": "Plan heavy carries before they happen: stage material at point of use and team-lift anything awkward or heavy.", "title_es": "Enfoque: Ergonom\u00eda y levantamiento manual", "text_es": "Planeen las cargas pesadas antes de moverlas: dejen el material donde se va a usar y levanten entre dos todo lo pesado o inc\u00f3modo."}, {"title": "Lesson from JOB-029", "text": "A ladder fall on Aug 28 kept a worker off work (ankle / foot). Lessons-learned sheet LTA-023: read it and check our own setup.", "title_es": "Lecci\u00f3n de JOB-029", "text_es": "Una ca\u00edda de escalera el 28 de ago dej\u00f3 a un trabajador sin poder trabajar (tobillo / pie). Hoja de lecciones aprendidas LTA-023: l\u00e9anla y revisen nuestra propia instalaci\u00f3n."}]}], "alerts": [{"job": "JOB-001", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "3 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A001"}, {"job": "JOB-001", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "5 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A002"}, {"job": "JOB-002", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "5 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A003"}, {"job": "JOB-002", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "8 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A004"}, {"job": "JOB-003", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "5 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A005"}, {"job": "JOB-003", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "5 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A006"}, {"job": "JOB-013", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "5 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A007"}, {"job": "JOB-013", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "3 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A008"}, {"job": "JOB-017", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "4 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A009"}, {"job": "JOB-017", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "4 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A010"}, {"job": "JOB-021", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "3 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A011"}, {"job": "JOB-022", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A012"}, {"job": "JOB-022", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "1 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A013"}, {"job": "JOB-024", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "2 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A014"}, {"job": "JOB-024", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "2 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A015"}, {"job": "JOB-025", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "3 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A016"}, {"job": "JOB-025", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "3 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A017"}, {"job": "JOB-027", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A018"}, {"job": "JOB-027", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "2 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A019"}, {"job": "JOB-029", "kind": "evidence", "signal": "Serious injury in the last 90 days", "detail": "1 recordable injury here since Jul 02.", "action": "Cover what happened at the next PTP and spot-check the same task this week", "owner": "Superintendent", "due": "2026-10-07", "sev": "High", "id": "A020"}, {"job": "JOB-029", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A021"}, {"job": "JOB-029", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "1 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A022"}, {"job": "JOB-031", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "2 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A023"}, {"job": "JOB-031", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "3 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A024"}, {"job": "JOB-032", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A025"}, {"job": "JOB-033", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A026"}, {"job": "JOB-033", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "2 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A027"}, {"job": "JOB-034", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "1 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A028"}, {"job": "JOB-035", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "2 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A029"}, {"job": "JOB-035", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "3 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A030"}, {"job": "JOB-036", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "5 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A031"}, {"job": "JOB-037", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "2 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A032"}, {"job": "JOB-037", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "1 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A033"}, {"job": "JOB-038", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A034"}, {"job": "JOB-039", "kind": "process", "signal": "Critical near-miss not followed up", "detail": "1 Critical good catch(es) with follow-up still open.", "action": "Send each item to the person who can fix it, with a due date; escalate after 7 days", "owner": "Safety Manager", "due": "2026-10-07", "sev": "High", "id": "A035"}, {"job": "JOB-039", "kind": "records", "signal": "Overdue Critical issues to verify", "detail": "1 Critical issue(s) show as open past due. Many may already be fixed but never closed in the system.", "action": "Walk each item: close it if fixed, re-plan it if not", "owner": "Project Engineer", "due": "2026-10-14", "sev": "Medium", "id": "A036"}, {"job": "ALL", "kind": "evidence", "signal": "Ladder Fall: lost-time injury at another job", "detail": "JOB-036 on Jun 03, 2026. This same mechanism has caused 9 lost-time injuries at 9 different jobs.", "action": "Send lessons-learned sheet LTA-018 to every superintendent; read it at the next PTP; track sign-off", "owner": "Safety Director", "due": "2026-10-07", "sev": "Critical", "id": "A037"}, {"job": "ALL", "kind": "evidence", "signal": "Ladder Fall: lost-time injury at another job", "detail": "JOB-029 on Aug 28, 2026. This same mechanism has caused 9 lost-time injuries at 9 different jobs.", "action": "Send lessons-learned sheet LTA-023 to every superintendent; read it at the next PTP; track sign-off", "owner": "Safety Director", "due": "2026-10-07", "sev": "Critical", "id": "A038"}, {"job": "ALL", "kind": "records", "signal": "Open issues on finished projects", "detail": "485 issues are still open on 18 completed projects.", "action": "Make issue close-out part of project completion sign-off", "owner": "Safety Director", "due": "2026-10-14", "sev": "High", "id": "A039"}], "limits": ["Synthetic data. 47 serious injuries is a small sample, so project-level rates are noisy: only 3 of 40 projects sit above the normal range.", "Hazard families group issue, good-catch and incident categories by judgement.", "The first-90-days gap is portfolio-wide; by project only 14 of 40 show it. It may partly reflect early work activities, not newness alone.", "Many \"overdue\" issues may be record-keeping gaps rather than unfixed hazards.", "Associations, not proven causes."]}</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = s => document.querySelector(s);
+const pct = x => Math.round(x*100)+'%';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = s => new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+$('#asof').textContent = fmtDate(D.asof);
+$('#limits').innerHTML = D.limits.map(l=>`<li>${esc(l)}</li>`).join('');
+
+let role='dir', job=D.active_jobs[0].id, kindF='all', stateF='open';
+const done = {}; let db = null;
+try{ role = localStorage.getItem('lsa-role')||role; job = localStorage.getItem('lsa-job')||job; }catch(e){}
+if(!D.active_jobs.find(j=>j.id===job)) job = D.active_jobs[0].id;
+
+const opts = D.active_jobs.map(j=>`<option value="${j.id}">${j.id} · ${esc(j.name)}</option>`).join('');
+const jobsel = $('#jobsel'), djob = $('#djob');
+jobsel.innerHTML = opts; djob.innerHTML = opts; jobsel.value = job; djob.value = job;
+jobsel.addEventListener('change', ()=>{ job = jobsel.value; djob.value = job; try{localStorage.setItem('lsa-job',job)}catch(e){}; render(); });
+document.querySelectorAll('.seg[aria-label="View as"] button').forEach(b=>b.addEventListener('click',()=>{ role=b.dataset.role; try{localStorage.setItem('lsa-role',role)}catch(e){}; render(); }));
+
+const KIND = {evidence:['ev','Evidence-based'], process:['pr','Process'], records:['rc','Records clean-up']};
+const kindChip = k => `<span class="chip ${KIND[k][0]}">${KIND[k][1]}</span>`;
+const tile = (v,k,c='') => `<div class="tile ${c}"><div class="v num">${v}</div><div class="k">${k}</div></div>`;
+const RANK = {evidence:0, process:1, records:2}, SEV = {Critical:0, High:1, Medium:2};
+
+function scoped(){ return D.alerts.filter(x=> role==='exec' ? x.job==='ALL' : role==='sup' ? (x.job==='ALL'||x.job===job) : true); }
+function alertsFor(){
+  let a = scoped();
+  if(kindF!=='all') a = a.filter(x=>x.kind===kindF);
+  if(stateF==='open') a = a.filter(x=>!done[x.id]);
+  if(stateF==='done') a = a.filter(x=>done[x.id]);
+  return a.slice().sort((x,y)=> RANK[x.kind]-RANK[y.kind] || SEV[x.sev]-SEV[y.sev] || (x.job==='ALL'?-1:1));
+}
+function alertHTML(a){
+  const where = a.job==='ALL' ? 'All projects' : a.job+' · '+esc((D.active_jobs.find(j=>j.id===a.job)||{}).name||'');
+  return `<div class="alert ${a.sev} ${done[a.id]?'isdone':''}">
+    <div class="stripe"></div>
+    <div class="body">
+      <div class="head"><span class="sig">${esc(a.signal)}</span>${kindChip(a.kind)}</div>
+      <div class="det">${esc(where)}: ${esc(a.detail)}</div>
+      <div class="act"><b>Do:</b> ${esc(a.action)}</div>
+      <div class="meta">Owner ${esc(a.owner)} · due ${fmtDate(a.due)} · ${a.id}</div>
+    </div>
+    <label class="done" for="cb-${a.id}"><input type="checkbox" id="cb-${a.id}" data-id="${a.id}" ${done[a.id]?'checked':''}> Done</label>
+  </div>`;
+}
+function playbookHTML(){
+  const all = scoped(), list = alertsFor(), nDone = all.filter(x=>done[x.id]).length;
+  const n = k => all.filter(x=>x.kind===k && !done[x.id]).length;
+  return `<section class="card">
+    <h2>Alert playbook</h2>
+    <p class="lede">Every alert comes with a default action, an owner and a due date. Ticking Done records that the action happened${db?', for the whole team':''}. Evidence-based alerts always come first.</p>
+    <div class="filters">
+      <div class="seg" role="group" aria-label="Signal type">
+        ${['all','evidence','process','records'].map(k=>`<button type="button" data-kind="${k}" aria-pressed="${kindF===k}">${k==='all'?'All':KIND[k][1]+' ('+n(k)+')'}</button>`).join('')}
+      </div>
+      <div class="seg" role="group" aria-label="Status">
+        ${['open','done','any'].map(k=>`<button type="button" data-state="${k}" aria-pressed="${stateF===k}">${k==='open'?'Open':k==='done'?'Done':'All'}</button>`).join('')}
+      </div>
+      <span class="count num">${all.length-nDone} open · ${nDone} done</span>
+    </div>
+    <div class="alerts">${list.length? list.map(alertHTML).join('') : '<div class="off">Nothing here. Change the filters above to see other alerts.</div>'}</div>
+  </section>`;
+}
+function focusCard(j){
+  return `<div class="fwc">
+    <div class="top"><span class="job">${esc(j.name)}</span><span class="id">${j.id}</span></div>
+    <div><span class="chip hz">Focus Walk theme: ${esc(j.focus)}</span></div>
+    <ul class="why">${j.focus_why.map(([k,w])=>`<li>${kindChip(k)}<span>${esc(w)}</span></li>`).join('')}</ul>
+    <div class="walk"><b>Walk checks:</b> ${esc(j.walk_check)}</div>
+    <div class="ptp">${j.ptp.map((p,n)=>`<div><b>PTP item ${n+1} · ${esc(p.title)}</b>${esc(p.text)}</div>`).join('')}</div>
+    <button type="button" class="linkbtn" data-draft="${j.id}">Draft the PTP talk →</button>
+  </div>`;
+}
+function gapChart(){
+  const rows = D.hazard_gap.filter(r=>r.attention>0||r.serious>0).sort((a,b)=>(b.serious-b.attention)-(a.serious-a.attention));
+  const max = Math.max(...rows.map(r=>Math.max(r.attention,r.serious)));
+  return `<div class="gap">${rows.map(r=>`<div class="gaprow"><span>${esc(r.family)}</span>
+      <span class="bars"><span class="bar a" style="width:${r.attention/max*100}%"></span><span class="bar s" style="width:${r.serious/max*100}%"></span></span>
+      <span class="num" style="color:${r.serious>r.attention+0.03?'var(--red)':'var(--sub)'}">${pct(r.serious)}</span></div>`).join('')}</div>
+    <div class="legend"><span><i style="background:var(--teal)"></i>Share of safety attention</span><span><i style="background:var(--red)"></i>Share of serious injuries</span></div>`;
+}
+function backtestHTML(){
+  const t = D.backtest.evidence.test_2025_26, tr = D.backtest.evidence.train_2024;
+  return `<section class="card">
+    <h2>Does the watch list work? A back-test</h2>
+    <p class="lede">At the start of each quarter we scored every job using only what was known then: first 90 days and recent injuries. We flagged the top quarter of scores, then counted serious injuries over the next three months.</p>
+    <div class="bt">
+      <div><div class="big num">${t.rec_in_flagged} of ${t.rec_total}</div>serious injuries in 2025–26 were on flagged jobs, which carried ${pct(t.flagged_share_of_hours)} of the hours.</div>
+      <div><div class="big num">${t.rate_flagged} vs ${t.rate_other}</div>serious-injury rate, flagged vs other, 2025–26 (about ${(t.rate_flagged/t.rate_other).toFixed(1)}×).</div>
+      <div><div class="big num">${tr.rate_flagged} vs ${tr.rate_other}</div>the same comparison in 2024, where it did not work.</div>
+    </div>
+    <p class="note">Mixed result on ${t.rec_total+tr.rec_total} serious injuries. Adding overdue issues to the score did not improve it. We use the list to decide where to look first, not to predict who gets hurt.</p>
+  </section>`;
+}
+function render(){
+  document.querySelectorAll('.seg[aria-label="View as"] button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.role===role));
+  jobsel.hidden = role!=='sup';
+  const K = D.kpis, F = D.first90; let h='';
+  if(role==='exec'){
+    const lad = D.lta_repeat.find(x=>x.type==='Ladder Fall')||{count:9,jobs:9};
+    const fall = D.hazard_gap.find(x=>x.family==='Falls from height')||{lta:0};
+    h += `<section class="card"><h2>Portfolio safety at a glance</h2>
+      <p class="lede">40 projects, ${(K.hours/1e6).toFixed(1)} million hours worked, Jan 2024 to Sep 2026.</p>
+      <div class="tiles">
+        ${tile(K.rate,'Serious injury rate (recordables per 200,000 hours)','red')}
+        ${tile(K.lta_rate,'Lost-time injury rate','red')}
+        ${tile(K.recordables,'Serious injuries ('+K.ltas+' lost-time)')}
+        ${tile(pct(K.fw_nowork),'Focus Walks filed on days with no work at that job','amber')}
+        ${tile(K.open_issues_completed,'Issues still open on finished projects','amber')}
+        ${tile(K.funnel_above+' of 40','projects outside the normal range; the rest is noise','teal')}
+      </div>
+      <div class="story">
+        <div><b>WHERE</b>Lifting causes the most serious injuries (32%) but gets 6% of inspections and near-miss reports. Falls cause the most severe ones: ${fall.lta} of ${K.ltas} lost-time injuries.</div>
+        <div><b>WHEN</b>Across all projects, the injury rate in the first 90 days is ${F.rate_first90} vs ${F.rate_after} later. It is not every project: ${F.higher_early} of 40 show it.</div>
+        <div><b>REPEATS</b>Ladder falls caused ${lad.count} lost-time injuries at ${lad.jobs} different jobs. The same mechanism keeps hitting new sites, so it needs a portfolio-wide rule such as "ladders last".</div>
+        <div><b>BOX-TICKING</b>${pct(K.ptp)} of daily PTPs are done, yet completion shows no link to injuries, and ${pct(K.fw_nowork)} of Focus Walks are filed on days with no work. Completion % is the wrong measure.</div>
+      </div></section>`;
+    h += `<section class="card"><h2>Attention vs. serious injuries, by hazard</h2><p class="lede">Hazards at the top get far less attention than the injuries they cause. Lifting needs engineering controls (staging, carts, team-lift), and falls need policy and equipment.</p>${gapChart()}</section>`;
+    const byFocus = {}; D.active_jobs.forEach(j=>byFocus[j.focus]=(byFocus[j.focus]||0)+1);
+    h += `<section class="card"><h2>This week's Focus Walk themes</h2><p class="lede">Uses the walk and PTP Layton already runs, so it adds no new work. Switch to Safety Director to see each job.</p>
+      <div class="filters">${Object.entries(byFocus).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<span class="chip hz">${esc(k)}: ${v} job${v===1?'':'s'}</span>`).join('')}</div></section>`;
+    h += playbookHTML() + backtestHTML();
+  } else if(role==='dir'){
+    const in90 = D.active_jobs.filter(j=>j.age_days<90).length;
+    h += `<section class="card"><h2>Safety Director view</h2>
+      <p class="lede">${D.active_jobs.length} active jobs. ${in90? in90+' are in their first 90 days.' : 'No active job is in its first 90 days right now. That alert switches on automatically when a new job starts.'}</p>
+      <div class="tiles">
+        ${tile(scoped().filter(a=>a.kind!=='records'&&!done[a.id]).length,'Open evidence and process alerts','red')}
+        ${tile(D.active_jobs.reduce((s,j)=>s+j.gc_open_crit,0),'Critical near-misses awaiting follow-up','amber')}
+        ${tile(scoped().filter(a=>a.kind==='records'&&!done[a.id]).length,'Records to clean up (not ranked as risk)')}
+        ${tile(D.active_jobs.filter(j=>j.focus==='Ergonomics & manual lifting').length,'Jobs walking lifting this week','teal')}
+      </div></section>`;
+    h += `<section class="card"><h2>This week, for each job: one Focus Walk theme and two PTP items</h2>
+      <p class="lede">Picked from the job's recent injuries and open near-misses, weighted toward hazards Layton under-watches. Nothing new to fill in.</p>
+      <div class="fw">${D.active_jobs.map(focusCard).join('')}</div></section>`;
+    h += playbookHTML() + backtestHTML();
+  } else {
+    const j = D.active_jobs.find(x=>x.id===job);
+    h += `<section class="card"><h2>${esc(j.name)} <span class="id" style="font-family:var(--mono);font-size:13px;color:var(--dim)">${j.id}</span></h2>
+      <p class="lede">${esc(j.type)} project in ${esc(j.state)}, started ${fmtDate(j.start)} (day ${j.age_days}). Shown as counts with hours, because one injury on a small job makes its rate jump.</p>
+      <div class="tiles">
+        ${tile(j.rec,'Serious injuries over '+(j.hours/1000).toFixed(0)+'k hours', j.rec?'red':'')}
+        ${tile(j.recent_inc,'Injuries in the last 90 days', j.recent_rec?'red':'')}
+        ${tile(j.gc_open_crit,'Critical near-misses awaiting follow-up', j.gc_open_crit?'amber':'')}
+        ${tile(j.overdue_crit,'Critical issues to verify (records)')}
+      </div></section>`;
+    h += `<section class="card"><h2>Your week: Focus Walk theme and PTP items</h2><p class="lede">Use these in the Focus Walk and daily PTPs you already run.</p>${focusCard(j)}</section>`;
+    h += playbookHTML();
+  }
+  $('#work').innerHTML = h; wire();
+}
+function wire(){
+  document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{kindF=b.dataset.kind;render();});
+  document.querySelectorAll('[data-state]').forEach(b=>b.onclick=()=>{stateF=b.dataset.state;render();});
+  document.querySelectorAll('.alert input[type=checkbox]').forEach(cb=>cb.onchange=()=>setDone(cb.dataset.id, cb.checked));
+  document.querySelectorAll('[data-draft]').forEach(b=>b.onclick=()=>{ djob.value=b.dataset.draft; draft(false); });
+}
+async function setDone(id, val){
+  if(val) done[id]=true; else delete done[id];
+  render();
+  if(db){ try{ await db.doc('playbook/'+id).set({done:val, at:new Date().toISOString()}); }catch(e){ console.warn(e); } }
+  else { try{ localStorage.setItem('lsa-done', JSON.stringify(done)); }catch(e){} }
+}
+(async()=>{
+  try{ const s = localStorage.getItem('lsa-done'); if(s) Object.assign(done, JSON.parse(s)); }catch(e){}
+  render();
+  try{
+    db = (typeof claude!=='undefined') ? await claude.use('db') : null;
+    if(db){
+      db.collection('playbook').onSnapshot(snap=>{
+        for(const k in done) delete done[k];
+        (snap.docs||snap).forEach(d=>{ const v = d.data ? d.data() : d; if(v && v.done) done[d.id]=true; });
+        render();
+      }, err=>console.warn(err));
+    }
+  }catch(e){ db = null; }
+})();
+
+/* ---------- PTP talk drafter ---------- */
+let sample = null, busy = false;
+const ta = $('#draft'), st = $('#dstatus');
+function fallback(j, lang){
+  if(lang==='Spanish'){
+    const it = j.ptp.map((p,n)=>`${n+1}. ${p.title_es||p.title}: ${p.text_es||p.text}`).join('\n');
+    return `Buenos días, equipo. Hoy hay dos cosas.\n\n${it}\n\n¿Alguna pregunta antes de empezar? Si ven algo, repórtenlo. Reportar un casi-accidente siempre se reconoce, nunca se castiga.`;
+  }
+  const items = j.ptp.map((p,n)=>`${n+1}. ${p.title}: ${p.text}`).join('\n');
+  return `Morning, crew. Two things today.\n\n${items}\n\nAny questions before we start? If you see something, report it. Good catches get credit here.`;
+}
+async function draft(shorter){
+  const j = D.active_jobs.find(x=>x.id===djob.value), lang = $('#dlang').value;
+  $('#reviewed').checked = false;
+  if(!sample){ ta.value = fallback(j, lang); st.textContent = 'AI is not available right now, so this is a plain template.'; return; }
+  if(busy) return; busy = true; $('#gen').disabled = $('#shorter').disabled = true;
+  st.textContent = 'Drafting…';
+  const base = shorter && ta.value.trim() ? `Rewrite this PTP talk to about half the length, same language, same facts:\n\n${ta.value}` :
+`Write a pre-task plan (PTP) safety talk a construction superintendent reads aloud to the crew at the start of the shift.
+Language: ${lang}. Length: 60 to 90 seconds spoken (about 130 to 180 words). Plain words, short sentences, no jargon, no headings, no bullet symbols.
+Use ONLY these facts. Do not add other hazards, statistics or advice:
+Job: ${j.name} (${j.id}).
+Item 1, ${j.ptp[0].title}: ${j.ptp[0].text}
+${j.ptp[1]?`Item 2, ${j.ptp[1].title}: ${j.ptp[1].text}`:''}
+This week's Focus Walk will check: ${j.walk_check}
+End by asking for questions and reminding the crew that reporting a near miss earns credit, never blame.`;
+  try{
+    const r = await sample(base, {cache:false, onText:({text})=>{ ta.value = text; }});
+    ta.value = r.text.trim();
+    st.textContent = 'Draft ready. Edit it, then tick Reviewed before using it.';
+  }catch(e){
+    st.textContent = e && e.code==='rate_limited' ? 'Too many drafts at once. Wait a minute and try again.' : e && e.code==='not_granted' ? 'The page needs your permission to draft. Click Draft again and accept the prompt.' : 'AI could not draft right now'+(e&&e.code?` (${e.code})`:'')+'. Showing the ready-made talk instead; try Draft again in a moment.';
+    ta.value = fallback(j, lang);
+  }finally{ busy=false; $('#gen').disabled = $('#shorter').disabled = false; }
+}
+$('#gen').onclick = ()=>draft(false);
+$('#shorter').onclick = ()=>draft(true);
+$('#copy').onclick = async()=>{ try{ await navigator.clipboard.writeText(ta.value); st.textContent='Copied.'; }catch(e){ ta.select(); st.textContent='Select-all is on. Press Cmd+C to copy.'; } };
+djob.onchange = $('#dlang').onchange = ()=>{ ta.value = fallback(D.active_jobs.find(x=>x.id===djob.value), $('#dlang').value); st.textContent = 'Ready-made talk shown. Click "Draft the talk" for an AI version.'; $('#reviewed').checked = false; };
+ta.value = fallback(D.active_jobs.find(x=>x.id===djob.value), 'English');
+st.textContent = 'Example shown. Click "Draft the talk" for an AI version.';
+
+/* ---------- Ask the data ---------- */
+const tabs = {draft:$('#t-draft'), ask:$('#t-ask')};
+function showTab(k){ for(const [n,b] of Object.entries(tabs)){ b.setAttribute('aria-selected', n===k); $('#p-'+n).hidden = n!==k; } }
+tabs.draft.onclick=()=>showTab('draft'); tabs.ask.onclick=()=>showTab('ask');
+const msgs=$('#msgs'), qbox=$('#q'), sendb=$('#send'); let hist=[], asking=false;
+function ctx(){
+  const k=D.kpis;
+  const jobs=D.active_jobs.map(j=>`${j.id} ${j.name} (${j.type}, ${j.state}, day ${j.age_days}): serious injuries ${j.rec}, lost-time ${j.lta}, hours ${j.hours}, open near-miss follow-ups ${j.gc_open} (Critical ${j.gc_open_crit}), overdue Critical issues ${j.overdue_crit}, injuries last 90 days ${j.recent_inc}, focus this week: ${j.focus}`).join('\n');
+  const gap=D.hazard_gap.map(h=>`${h.family}: ${Math.round(h.serious*100)}% of serious injuries, ${Math.round(h.attention*100)}% of safety attention, ${h.lta} lost-time, issue severity label ${h.label}`).join('\n');
+  const al=D.alerts.map(a=>`[${a.kind}] ${a.job}: ${a.signal}. ${a.detail} Action: ${a.action} (${a.owner}, due ${a.due})`).join('\n');
+  return `PORTFOLIO (Jan 2024 to Sep 2026, 40 projects): serious injury rate ${k.rate} per 200,000 hours, lost-time rate ${k.lta_rate}, ${k.recordables} serious injuries, ${k.ltas} lost-time injuries, daily PTPs done ${Math.round(k.ptp*100)}%, Focus Walks done ${Math.round(k.walk*100)}%, ${Math.round(k.fw_nowork*100)}% of Focus Walks filed on days with no work, ${k.gc_open} near-miss follow-ups open (${k.gc_open_crit} Critical), ${k.open_issues_completed} issues still open on finished projects. Injury rate in a project's first 90 days is about 2x the later rate across the portfolio (not true on every job). Only ${k.funnel_above} of 40 projects (${k.funnel_jobs}) sit above the normal range for their hours; ranking the rest is noise. Checklist completion did not predict injuries.
+HAZARDS:\n${gap}\nACTIVE JOBS:\n${jobs}\nALERTS:\n${al}`;
+}
+const SUGG=['Which jobs have the most Critical near-misses open?','Why is lifting a big deal?','What should JOB-001 focus on this week?','Is the first-90-days risk true for every job?'];
+$('#sugg').innerHTML=SUGG.map(t=>`<button type="button">${t}</button>`).join('');
+$('#sugg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ qbox.value=b.textContent; ask(); });
+function add(cls,t){ const d=document.createElement('div'); d.className='m '+cls; d.textContent=t; msgs.appendChild(d); msgs.scrollTop=msgs.scrollHeight; return d; }
+add('a','Hi! Ask me anything about Layton\'s safety data: hazards, jobs, alerts or trends.');
+async function ask(){
+  const q=qbox.value.trim(); if(!q||asking) return;
+  if(!sample){ add('a err','AI is not available right now.'); return; }
+  asking=true; sendb.disabled=true; qbox.value=''; add('u',q); const out=add('a','Thinking…');
+  hist.push({role:'user',content:q});
+  const sys=`You answer questions about Layton Construction's safety data for leaders and superintendents. Use ONLY the data below. If the answer is not in it, say you don't have that data. Plain words, short (under 120 words), no markdown headings. Mention job IDs and numbers when useful. Be honest about limits (e.g. first-90-days is portfolio-wide, project ranking is mostly noise).\n\nDATA:\n${ctx()}`;
+  const conv=[{role:'user',content:sys+'\n\nQuestion: '+hist[0].content}, ...hist.slice(1)];
+  if(hist.length>1){ conv[0]={role:'user',content:sys+'\n\nQuestion: '+hist[0].content}; }
+  try{
+    const r=await sample(conv,{cache:false,onText:({text})=>{ out.textContent=text; msgs.scrollTop=msgs.scrollHeight; }});
+    out.textContent=r.text.trim(); hist.push({role:'assistant',content:r.text.trim()});
+    if(hist.length>12) hist=hist.slice(-12).filter((m,i,a)=>!(i===0&&m.role==='assistant'));
+  }catch(e){
+    hist.pop(); out.classList.add('err');
+    out.textContent = e&&e.code==='rate_limited'?'Too many questions at once. Wait a minute.': e&&e.code==='not_granted'?'Allow the page to use AI, then ask again.':'Could not answer right now'+(e&&e.code?` (${e.code})`:'')+'. Try again.';
+  }finally{ asking=false; sendb.disabled=false; }
+}
+$('#askf').onsubmit=(ev)=>{ ev.preventDefault(); ask(); };
+qbox.addEventListener('keydown',ev=>{ if(ev.key==='Enter'&&!ev.shiftKey){ ev.preventDefault(); ask(); } });
+
+// AI calls go to the team's /api/assistant (OpenAI) instead of the claude.ai artifact runtime.
+sample = async (input) => {
+  const messages = typeof input === 'string' ? [{role:'user', content:input}] : input;
+  const r = await fetch('/api/assistant', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({messages})});
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok){ const e = new Error(j.error||'error'); e.code = r.status===429 ? 'rate_limited' : String(r.status); throw e; }
+  return {text: j.text||''};
+};
+</script>
+</body>
+</html>

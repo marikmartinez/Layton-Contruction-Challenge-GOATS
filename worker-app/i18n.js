@@ -41,6 +41,7 @@ const I18N = {
   "Language set to {lang}.": ["Idioma cambiado a {lang}.", "Idioma alterado para {lang}.", "Zmieniono język na {lang}."],
   "Mental health & substance use": ["Salud mental y uso de sustancias", "Saúde mental e uso de substâncias", "Zdrowie psychiczne i uzależnienia"],
   "Leadership": ["Liderazgo", "Liderança", "Kierownictwo"],
+  "Leadership assistant": ["Asistente de liderazgo", "Assistente de liderança", "Asystent kierownictwa"],
   "Safety dashboard": ["Panel de seguridad", "Painel de segurança", "Panel bezpieczeństwa"],
   "opens in a new tab": ["se abre en una pestaña nueva", "abre em uma nova aba", "otwiera się w nowej karcie"],
   "Need to talk now?": ["¿Necesitas hablar ahora?", "Precisa conversar agora?", "Potrzebujesz porozmawiać?"],

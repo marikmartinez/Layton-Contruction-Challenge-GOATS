@@ -208,7 +208,9 @@
       ${typeof SAFETY_DASHBOARD_URL === "string" && SAFETY_DASHBOARD_URL ? `
       <li class="group" aria-hidden="true">${esc(t("Leadership"))}</li>
       <li><a href="${esc(SAFETY_DASHBOARD_URL)}" target="_blank" rel="noopener"
-        aria-label="${esc(`${t("Safety dashboard")} (${t("opens in a new tab")})`)}">${icon("chart")} ${esc(t("Safety dashboard"))}</a></li>` : ""}`;
+        aria-label="${esc(`${t("Safety dashboard")} (${t("opens in a new tab")})`)}">${icon("chart")} ${esc(t("Safety dashboard"))}</a></li>` : ""}
+      ${typeof LEADERSHIP_ASSISTANT_URL === "string" && LEADERSHIP_ASSISTANT_URL ? `
+      <li><a href="${esc(LEADERSHIP_ASSISTANT_URL)}">${icon("chart")} ${esc(t("Leadership assistant"))}</a></li>` : ""}`;
     markCurrentLink();
   }
 

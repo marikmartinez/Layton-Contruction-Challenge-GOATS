@@ -8,8 +8,9 @@ import transcribe from "./api/transcribe.js";
 import submitReport from "./api/submit.js";
 import reports from "./api/reports.js";
 import dashboard from "./api/dashboard.js";
+import assistant from "./api/assistant.js";
 
-const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport, "/api/reports": reports, "/api/dashboard": dashboard };
+const API = { "/api/extract": extract, "/api/transcribe": transcribe, "/api/submit": submitReport, "/api/reports": reports, "/api/dashboard": dashboard, "/api/assistant": assistant };
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 
