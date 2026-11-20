@@ -671,9 +671,8 @@ with tab_live:
                         if pic:
                             pic.image(photo)
 
-                        # Read-only: this dashboard has no sign-in, so anyone with the link could resolve.
-                        # Resolving happens in the Leadership Assistant, which needs the leadership passcode.
-                        st.caption("🔒 To resolve this report, use the Leadership Assistant (leadership passcode required).")
+                        # Read-only: this dashboard has no sign-in.
+                        st.caption("🔒 Only safety managers can resolve reports. Resolve it in the Leadership Assistant.")
                         st.link_button(
                             "Open Leadership Assistant",
                             "https://layton-worker-app.vercel.app/leadership/index.html#live",
