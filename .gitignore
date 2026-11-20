@@ -2,3 +2,5 @@
 .venv/
 misc/
 .env
+.vercel
+.streamlit/secrets.toml
