@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # The worker app (Vercel) that feeds the Live Worker Reports tab.
 # Leave empty ("") to hide the button.
-WORKER_APP_URL = ""
+WORKER_APP_URL = "https://layton-worker-app.vercel.app/"
 
 title_col, link_col = st.columns([5, 1], vertical_alignment="bottom")
 

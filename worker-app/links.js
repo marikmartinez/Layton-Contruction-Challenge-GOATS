@@ -6,4 +6,4 @@
 /* eslint-disable no-unused-vars */
 
 // Hazard Intelligence dashboard (Streamlit Community Cloud, hazard-intelligence/app.py).
-const SAFETY_DASHBOARD_URL = "";
+const SAFETY_DASHBOARD_URL = "https://layton-contruction-challenge-goats-hwxjjx7md4pas4wbprcrev.streamlit.app/";
