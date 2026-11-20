@@ -635,7 +635,7 @@ with tab_live:
 
                 rows = event.selection.rows
                 if not rows:
-                    st.caption("👆 Click a row to see the details and resolve it.")
+                    st.caption("👆 Click a row to see the details.")
                 else:
                     r = live_alerts.iloc[rows[0]]
                     rid = int(r["Report ID"])
@@ -671,25 +671,13 @@ with tab_live:
                         if pic:
                             pic.image(photo)
 
-                        if source == "supabase":
-                            c1, c2, c3 = st.columns([2, 5, 1], vertical_alignment="bottom")
-                            by = c1.text_input("Resolved by", key=f"by_{rid}")
-                            note = c2.text_input("What was done?", key=f"note_{rid}")
-                            if c3.button("✅ Resolve", type="primary",
-                                         width="stretch", key=f"resolve_{rid}"):
-                                if not (by and note):
-                                    st.warning("Fill in both fields.")
-                                else:
-                                    try:
-                                        resolve_report(rid, by, note)
-                                        load_live_reports.clear()
-                                        st.session_state["alert_ver"] = ver + 1
-                                        st.session_state["resolved_msg"] = (
-                                            f"Report #{rid} resolved."
-                                        )
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"Resolve failed: {e}")
+                        # Read-only: this dashboard has no sign-in, so anyone with the link could resolve.
+                        # Resolving happens in the Leadership Assistant, which needs the leadership passcode.
+                        st.caption("🔒 To resolve this report, use the Leadership Assistant (leadership passcode required).")
+                        st.link_button(
+                            "Open Leadership Assistant",
+                            "https://layton-worker-app.vercel.app/leadership/index.html#live",
+                        )
 
             st.subheader("All Worker Submissions")
 
