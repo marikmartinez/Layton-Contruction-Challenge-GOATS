@@ -1,7 +1,21 @@
 
 from pathlib import Path
 import pandas as pd
+import sys
+
 import streamlit as st
+
+# Make live_reports.py importable however the app is launched
+# (locally, Streamlit Community Cloud, or tests).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from live_reports import (  # noqa: E402
+    build_live_alerts,
+    data_source,
+    fetch_reports,
+    load_config,
+    reports_table,
+)
 
 # ============================================================
 # 1. PAGE CONFIGURATION
@@ -395,8 +409,9 @@ hazard_mapping = {
 # 8. DASHBOARD NAVIGATION
 # ============================================================
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab_live, tab2, tab3, tab4 = st.tabs([
     "🏢 Portfolio Overview",
+    "📡 Live Worker Reports",
     "🔎 Project Investigation",
     "📚 Historical Incidents",
     "🧪 Data Quality"
@@ -489,6 +504,115 @@ with tab1:
         "Counts reflect documented issue reports, not "
         "unique physical hazards or predicted injuries."
     )
+
+# ============================================================
+# TAB: LIVE WORKER REPORTS (shared Supabase database)
+# ============================================================
+
+@st.cache_data(ttl=60, show_spinner="Loading worker reports…")
+def load_live_reports():
+    return fetch_reports(load_config(st.secrets))
+
+
+with tab_live:
+
+    st.header("Live Worker Reports")
+
+    source = data_source(load_config(st.secrets))
+
+    if source is None:
+        st.info(
+            "Not connected to the worker app's database. Add "
+            "`SUPABASE_URL` and `SUPABASE_SECRET_KEY` (the same values "
+            "the worker app uses) to the repo-root `.env`, to "
+            "`.streamlit/secrets.toml`, or to the environment, then reload."
+        )
+
+    else:
+        top_left, top_right = st.columns([4, 1])
+        top_left.caption(
+            "Submissions from the worker app, read from the same Supabase "
+            "database the app saves to"
+            + (" (direct)." if source == "supabase" else " (via /api/dashboard).")
+            + " Refreshes every minute."
+        )
+        if top_right.button("🔄 Refresh now"):
+            load_live_reports.clear()
+
+        try:
+            live_reports = load_live_reports()
+        except RuntimeError as error:
+            st.error(str(error))
+            live_reports = None
+
+        if live_reports is not None:
+            live_alerts = build_live_alerts(live_reports, jobs, issues)
+            live_table = reports_table(live_reports)
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Worker Reports", len(live_reports))
+            col2.metric("Needing Review", len(live_alerts))
+            col3.metric(
+                "Urgent Reviews",
+                int((live_alerts["Priority"] == "Urgent Review").sum())
+                if not live_alerts.empty else 0
+            )
+            col4.metric(
+                "Awaiting Safety Team",
+                int((live_table["Status"] == "Submitted").sum())
+                if not live_table.empty else 0
+            )
+
+            st.divider()
+
+            st.subheader("🚨 Worker Reports Requiring Review")
+            st.caption(
+                "Open issues, incidents, and good catches with open "
+                "follow-up, prioritized with the same rules as the "
+                "historical queue and cross-checked against unresolved "
+                "historical issues for the same job and hazard category. "
+                "These are review candidates, not verified hazards."
+            )
+
+            if live_alerts.empty:
+                st.success("No worker reports currently need review.")
+            else:
+                st.dataframe(live_alerts, hide_index=True, width="stretch")
+
+            st.subheader("All Worker Submissions")
+
+            if live_table.empty:
+                st.info("No reports have been submitted yet.")
+            else:
+                forms = ["All forms"] + sorted(
+                    live_table["Form"].dropna().unique().tolist()
+                )
+                selected_form = st.selectbox(
+                    "Filter by form", forms, key="live_form"
+                )
+                shown = (
+                    live_table if selected_form == "All forms"
+                    else live_table[live_table["Form"] == selected_form]
+                )
+                st.dataframe(
+                    shown,
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "First photo": st.column_config.ImageColumn(
+                            "First photo"
+                        ),
+                        "Submitted": st.column_config.DatetimeColumn(
+                            "Submitted", format="YYYY-MM-DD HH:mm"
+                        ),
+                    },
+                )
+                st.download_button(
+                    label="📥 Download Worker Reports",
+                    data=shown.drop(columns=["First photo"]).to_csv(index=False),
+                    file_name="worker_reports.csv",
+                    mime="text/csv",
+                )
 
 # ============================================================
 # TAB 2: PROJECT INVESTIGATION
