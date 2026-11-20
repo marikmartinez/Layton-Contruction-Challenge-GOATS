@@ -40,6 +40,9 @@ const I18N = {
   "Language": ["Idioma", "Idioma", "Język"],
   "Language set to {lang}.": ["Idioma cambiado a {lang}.", "Idioma alterado para {lang}.", "Zmieniono język na {lang}."],
   "Mental health & substance use": ["Salud mental y uso de sustancias", "Saúde mental e uso de substâncias", "Zdrowie psychiczne i uzależnienia"],
+  "Leadership": ["Liderazgo", "Liderança", "Kierownictwo"],
+  "Safety dashboard": ["Panel de seguridad", "Painel de segurança", "Panel bezpieczeństwa"],
+  "opens in a new tab": ["se abre en una pestaña nueva", "abre em uma nova aba", "otwiera się w nowej karcie"],
   "Need to talk now?": ["¿Necesitas hablar ahora?", "Precisa conversar agora?", "Potrzebujesz porozmawiać?"],
   "Call or text 988, free and confidential, 24/7": [
     "Llama o envía un mensaje al 988, gratis y confidencial, 24/7",

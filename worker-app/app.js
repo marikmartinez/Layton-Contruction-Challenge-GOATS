@@ -43,6 +43,7 @@
     x: '<path d="M6 6l12 12M18 6L6 18"/>',
     chevron: '<path d="M6 9l6 6 6-6"/>',
     trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    chart: '<path d="M4 20h16"/><rect x="6" y="11" width="3" height="6" rx=".5"/><rect x="11" y="6" width="3" height="11" rx=".5"/><rect x="16" y="13" width="3" height="4" rx=".5"/>',
   };
   const icon = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 
@@ -203,7 +204,11 @@
       <li class="group" aria-hidden="true">${esc(t("Report"))}</li>
       ${FORMS.map((f) => `<li><a href="#/form/${f.id}">${icon(f.icon)} ${esc(t(f.title))}</a></li>`).join("")}
       <li class="group" aria-hidden="true">${esc(t("Support"))}</li>
-      <li><a href="#/resources">${icon("heart")} ${esc(t("Mental health & substance use"))}</a></li>`;
+      <li><a href="#/resources">${icon("heart")} ${esc(t("Mental health & substance use"))}</a></li>
+      ${typeof SAFETY_DASHBOARD_URL === "string" && SAFETY_DASHBOARD_URL ? `
+      <li class="group" aria-hidden="true">${esc(t("Leadership"))}</li>
+      <li><a href="${esc(SAFETY_DASHBOARD_URL)}" target="_blank" rel="noopener"
+        aria-label="${esc(`${t("Safety dashboard")} (${t("opens in a new tab")})`)}">${icon("chart")} ${esc(t("Safety dashboard"))}</a></li>` : ""}`;
     markCurrentLink();
   }
 

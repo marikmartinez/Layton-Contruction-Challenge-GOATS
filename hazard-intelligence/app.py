@@ -30,7 +30,22 @@ st.set_page_config(
 SNAPSHOT_DATE = pd.Timestamp("2026-09-30")
 BASE_DIR = Path(__file__).resolve().parent
 
-st.title("⚠️ Hazard Intelligence & Escalation Engine")
+# The worker app (Vercel) that feeds the Live Worker Reports tab.
+# Leave empty ("") to hide the button.
+WORKER_APP_URL = ""
+
+title_col, link_col = st.columns([5, 1], vertical_alignment="bottom")
+
+title_col.title("⚠️ Hazard Intelligence & Escalation Engine")
+
+if WORKER_APP_URL:
+    link_col.link_button(
+        "📱 Open Worker App",
+        WORKER_APP_URL,
+        help="The field app workers use to submit reports",
+        width="stretch",
+    )
+
 st.caption(
     "Evidence-based safety monitoring for construction leadership "
     "| Reporting cutoff: September 30, 2026"
