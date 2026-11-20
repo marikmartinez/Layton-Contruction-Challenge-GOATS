@@ -524,6 +524,28 @@ with tab1:
 # TAB: LIVE WORKER REPORTS (shared Supabase database)
 # ============================================================
 
+import os
+import requests
+
+
+def _secret(name):
+    try:
+        return st.secrets[name]
+    except Exception:
+        return os.environ.get(name)
+
+
+def resolve_report(report_id, by, note):
+    url = _secret("SUPABASE_URL")
+    key = _secret("SUPABASE_SECRET_KEY")
+    r = requests.post(
+        f"{url.rstrip('/')}/rest/v1/rpc/resolve_report",
+        headers={"apikey": key},
+        json={"p_id": report_id, "p_by": by, "p_note": note},
+        timeout=10,
+    )
+    r.raise_for_status()
+
 @st.cache_data(ttl=60, show_spinner="Loading worker reports…")
 def load_live_reports():
     return fetch_reports(load_config(st.secrets))
@@ -592,7 +614,82 @@ with tab_live:
             if live_alerts.empty:
                 st.success("No worker reports currently need review.")
             else:
-                st.dataframe(live_alerts, hide_index=True, width="stretch")
+                ver = st.session_state.get("alert_ver", 0)
+                show_cols = [
+                    c for c in ["Report ID", "Job", "Form", "Hazard category",
+                                "Severity", "Priority", "Overdue"]
+                    if c in live_alerts.columns
+                ]
+                event = st.dataframe(
+                    live_alerts,
+                    column_order=show_cols,
+                    hide_index=True,
+                    width="stretch",
+                    on_select="rerun",
+                    selection_mode="single-row",
+                    key=f"alert_table_{ver}",
+                )
+
+                if msg := st.session_state.pop("resolved_msg", None):
+                    st.success(msg)
+
+                rows = event.selection.rows
+                if not rows:
+                    st.caption("👆 Click a row to see the details and resolve it.")
+                else:
+                    r = live_alerts.iloc[rows[0]]
+                    rid = int(r["Report ID"])
+                    color = {"Critical": "red", "High": "orange"}.get(r.get("Severity"), "blue")
+
+                    photo = None
+                    if {"Report ID", "First photo"} <= set(live_table.columns):
+                        m = live_table.loc[
+                            live_table["Report ID"] == rid, "First photo"
+                        ].dropna()
+                        photo = m.iloc[0] if len(m) else None
+
+                    with st.container(border=True):
+                        info, pic = (
+                            st.columns([3, 1]) if photo else (st.container(), None)
+                        )
+                        with info:
+                            overdue = str(r.get("Overdue")).lower() == "true"
+                            st.markdown(
+                                f"### #{rid} · {r['Hazard category']} · {r['Job']}\n"
+                                f":{color}-badge[{r['Severity']}] "
+                                f":violet-badge[{r['Priority']}] "
+                                + (":red-badge[Overdue]" if overdue else "")
+                            )
+                            st.write(r.get("Description", ""))
+                            hist = r.get("Historical unresolved (same job/category)")
+                            if pd.notna(hist) and int(hist) > 0:
+                                st.caption(
+                                    f"⚠️ {int(hist)} unresolved historical report(s) "
+                                    "for this job & category"
+                                )
+                            st.info(r.get("Recommended action", ""), icon="👉")
+                        if pic:
+                            pic.image(photo)
+
+                        if source == "supabase":
+                            c1, c2, c3 = st.columns([2, 5, 1], vertical_alignment="bottom")
+                            by = c1.text_input("Resolved by", key=f"by_{rid}")
+                            note = c2.text_input("What was done?", key=f"note_{rid}")
+                            if c3.button("✅ Resolve", type="primary",
+                                         width="stretch", key=f"resolve_{rid}"):
+                                if not (by and note):
+                                    st.warning("Fill in both fields.")
+                                else:
+                                    try:
+                                        resolve_report(rid, by, note)
+                                        load_live_reports.clear()
+                                        st.session_state["alert_ver"] = ver + 1
+                                        st.session_state["resolved_msg"] = (
+                                            f"Report #{rid} resolved."
+                                        )
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Resolve failed: {e}")
 
             st.subheader("All Worker Submissions")
 
