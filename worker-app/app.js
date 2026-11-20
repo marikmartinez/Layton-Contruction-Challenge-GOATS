@@ -205,8 +205,11 @@
       ${FORMS.map((f) => `<li><a href="#/form/${f.id}">${icon(f.icon)} ${esc(t(f.title))}</a></li>`).join("")}
       <li class="group" aria-hidden="true">${esc(t("Support"))}</li>
       <li><a href="#/resources">${icon("heart")} ${esc(t("Mental health & substance use"))}</a></li>
+      ${[typeof LEADERSHIP_ASSISTANT_URL === "string" && LEADERSHIP_ASSISTANT_URL, typeof SAFETY_DASHBOARD_URL === "string" && SAFETY_DASHBOARD_URL].some(Boolean) ? `
+      <li class="group" aria-hidden="true">${esc(t("Leadership"))}</li>` : ""}
+      ${typeof LEADERSHIP_ASSISTANT_URL === "string" && LEADERSHIP_ASSISTANT_URL ? `
+      <li><a href="${esc(LEADERSHIP_ASSISTANT_URL)}">${icon("chart")} ${esc(t("Leadership assistant"))}</a></li>` : ""}
       ${typeof SAFETY_DASHBOARD_URL === "string" && SAFETY_DASHBOARD_URL ? `
-      <li class="group" aria-hidden="true">${esc(t("Leadership"))}</li>
       <li><a href="${esc(SAFETY_DASHBOARD_URL)}" target="_blank" rel="noopener"
         aria-label="${esc(`${t("Safety dashboard")} (${t("opens in a new tab")})`)}">${icon("chart")} ${esc(t("Safety dashboard"))}</a></li>` : ""}`;
     markCurrentLink();
